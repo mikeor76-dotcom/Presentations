@@ -530,13 +530,13 @@ html,body{overscroll-behavior:none}
 
 <!-- 15 -->
 <section class="slide"><div class="frame">
-  <div class="stage center"><div class="shift guard" style="grid-template-columns:auto minmax(0,1fr) 290px;gap:34px">
+  <div class="stage center" data-sting="0.84"><div class="shift guard" style="grid-template-columns:auto minmax(0,1fr) 290px;gap:34px">
     <div class="num">A</div>
     <div class="txt"><div class="eyebrow">Guardrail: warmth</div><h2>First, people ask: do you mean well?</h2>
       <p class="lead">Ease without interest in the other person reads as arrogance. People who ask follow-up questions are liked more.</p><p class="body hi">Remember: the biggest compliment you can pay someone is your attention.</p></div>
     <svg class="vig" viewBox="0 0 360 300" data-vig="warm" aria-hidden="true"></svg>
   </div><div class="src">Fiske, Cuddy &amp; Glick, 2007 · Huang, Yeomans, Brooks, Minson &amp; Gino, 2017</div></div>
-  <div class="stage center"><div class="shift guard" style="grid-template-columns:auto minmax(0,1fr) 290px;gap:34px">
+  <div class="stage center" data-sting="0.84"><div class="shift guard" style="grid-template-columns:auto minmax(0,1fr) 290px;gap:34px">
     <div class="num">B</div>
     <div class="txt"><div class="eyebrow">Guardrail: competence</div><h2>Then they ask: can you deliver?</h2>
       <p class="lead hi">Confidence gets you the room. Being found out loses it.</p>
@@ -1682,7 +1682,7 @@ function showStage(sl,si,fresh){
     if(k!==si&&st.comp)st.comp.stop();
   });
   var st=sl._stages[si];
-  if(fresh){st.units.forEach(function(u){setU(u,false);});if(st.comp)st.comp.prep();void st.el.offsetWidth;st.el.classList.add('live');countUp(st.el);if(st.el.hasAttribute('data-sting')&&start.hidden)playFx('m_sting',1,.5);}
+  if(fresh){st.units.forEach(function(u){setU(u,false);});if(st.comp)st.comp.prep();void st.el.offsetWidth;st.el.classList.add('live');countUp(st.el);if(st.el.hasAttribute('data-sting')&&start.hidden)playFx('m_sting',+st.el.getAttribute('data-sting')||1,.5);}
   else{st.units.forEach(function(u){setU(u,true);});if(st.comp)st.comp.rest();}
 }
 function doStep(sl,k){var s=sl._steps[k];if(s.t==='stage')showStage(sl,s.si,true);else if(s.t==='comp')sl._stages[s.si].comp.do(s.k);else{setU(s.u,true);var st=sl._stages[s.si];if(st.comp&&st.comp.unit)st.comp.unit(st.units.indexOf(s.u)+2);{var te=s.u.els[0];if(s.u.snd)playFx(s.u.snd,1,.8);else if(te&&te.matches('.ring .tile')){var rn=[].indexOf.call(te.parentNode.querySelectorAll('.tile'),te);playFx('pluck',Math.pow(2,[0,2,4,7,9][rn%5]/12),.7);}else playFx('pluck',1,.7);}}}
