@@ -1,0 +1,1712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How People Read You</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: a sideways scroller of 1280x720 frames, scaled to fit. One visual world: a dark stage, figures and word tiles lit on it. */
+  --ground:#0E1322; --panel:#171F36; --panel2:#202A48; --paper:#F4F0E8; --muted:#A9B2C8; --line:#2A3555;
+  --need:#FF9A3C; --need-soft:rgba(255,154,60,.15); --need-text:#FFD2A1;
+  --ease:#7F97FF; --ease-solid:#4460F0; --ease-soft:rgba(127,151,255,.16); --ease-text:#CDD6FF;
+  --display:'Bricolage Grotesque','Instrument Sans',system-ui,sans-serif; --body:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--ground);color:var(--paper);font-family:var(--body);overflow:hidden}
+#deck{height:100%;position:relative}
+.slide{position:absolute;inset:0;display:grid;place-items:center;overflow:hidden;opacity:0;visibility:hidden;transition:opacity .3s}
+.slide.cur{opacity:1;visibility:visible}
+.frame{width:1280px;height:720px;flex:none;transform:scale(var(--s,1));transform-origin:center;padding:58px 80px 78px;display:flex;flex-direction:column;gap:20px;position:relative}
+.frame.center{justify-content:center}
+.stage{display:none;flex-direction:column;gap:20px;flex:1;min-height:0}
+.stage.on{display:flex}
+.stage.center{justify-content:center}
+@keyframes stagein{from{opacity:0}}
+.stage.live{animation:stagein .35s ease both}
+h1,h2,h3,p{margin:0}
+h1{font-family:var(--display);font-weight:800;font-size:112px;line-height:.94;letter-spacing:-0.035em;text-wrap:balance}
+h2{font-family:var(--display);font-weight:700;font-size:50px;line-height:1.06;letter-spacing:-0.02em;text-wrap:balance}
+.big{font-family:var(--display);font-weight:700;font-size:68px;line-height:1.06;letter-spacing:-0.025em;text-wrap:balance;max-width:1020px}
+.lead{font-size:29px;line-height:1.38;color:var(--muted);max-width:920px}
+.body{font-size:25px;line-height:1.42;color:var(--muted);max-width:940px}
+.hi{color:var(--paper);font-weight:500}
+.eyebrow{font-size:16px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ease)}
+.eyebrow.n{color:var(--need)}
+.src{position:absolute;left:80px;bottom:50px;font-size:14px;color:var(--muted);opacity:.85}
+.tile{display:inline-block;padding:7px 15px;border-radius:9px;font-weight:600;font-size:22px;line-height:1.3}
+.tile.req{background:var(--need);color:#1A1206}
+.tile.pale{background:var(--need-soft);color:var(--need-text)}
+.tile.blue{background:var(--ease-solid);color:#fff}
+.tile.bluep{background:var(--ease-soft);color:var(--ease-text)}
+.tile.paper{background:var(--paper);color:var(--ground)}
+.tile.struck{background:var(--panel2);color:var(--muted);text-decoration:line-through}
+.tiles{display:flex;flex-wrap:wrap;gap:10px}
+.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
+.col{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:28px 30px;display:flex;flex-direction:column;gap:18px}
+.col h3{font-family:var(--display);font-weight:700;font-size:28px;display:flex;align-items:center;gap:12px}
+.dot{width:13px;height:13px;border-radius:50%;flex:none;display:inline-block}
+.dot.n{background:var(--need)} .dot.e{background:var(--ease)} .dot.k{background:#8C97B3}
+.stat{font-family:var(--display);font-weight:800;font-size:230px;line-height:.84;letter-spacing:-0.05em;color:var(--ease)}
+.stat small{font-size:58px;letter-spacing:-0.02em;color:var(--paper);margin-left:16px;font-weight:700}
+.steps{display:flex;flex-direction:column;gap:20px;list-style:none;margin:0;padding:0;counter-reset:n}
+.steps li{counter-increment:n;display:flex;gap:22px;align-items:baseline;font-size:31px;line-height:1.3;font-weight:500}
+.steps li::before{content:counter(n);font-family:var(--display);font-weight:800;font-size:26px;width:48px;height:48px;border-radius:13px;background:var(--ease-solid);color:#fff;display:grid;place-items:center;flex:none;transform:translateY(-3px)}
+.steps li span{color:var(--muted);font-weight:400;font-size:23px;display:block;margin-top:4px}
+.shift{display:grid;grid-template-columns:auto minmax(0,1fr) 330px;gap:44px;align-items:center}
+.shift.two{grid-template-columns:auto minmax(0,1fr)}
+.shift .num{font-family:var(--display);font-weight:800;font-size:330px;line-height:.78;letter-spacing:-0.06em;color:transparent;-webkit-text-stroke:3px var(--ease)}
+.shift.guard .num{-webkit-text-stroke-color:var(--paper)}
+.shift .txt{display:flex;flex-direction:column;gap:18px}
+.vig{width:100%;height:auto;display:block}
+.strike{text-decoration:line-through;text-decoration-thickness:4px;color:var(--muted)}
+/* mechanism flows */
+.flowhead,.flow{display:grid;grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr) 34px minmax(0,1fr);gap:10px;align-items:stretch}
+.flowhead{font-size:14px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.flowhead span:nth-child(even){visibility:hidden}
+.flows{display:flex;flex-direction:column;gap:12px}
+.step{border-radius:14px;padding:16px 18px;font-size:21px;line-height:1.32;font-weight:500;display:flex;align-items:center;min-height:86px}
+.arr{display:grid;place-items:center;color:var(--muted)}
+.arr svg{width:26px;height:26px}
+.flow.n .step:nth-child(1){background:var(--need);color:#1A1206;font-weight:600}
+.flow.n .step:nth-child(3){background:var(--need-soft);color:var(--need-text)}
+.flow.n .step:nth-child(5){border:2px solid var(--need);color:var(--paper)}
+.flow.e .step:nth-child(1){background:var(--ease-solid);color:#fff;font-weight:600}
+.flow.e .step:nth-child(3){background:var(--ease-soft);color:var(--ease-text)}
+.flow.e .step:nth-child(5){border:2px solid var(--ease);color:var(--paper)}
+/* loop */
+.ring{position:relative;width:860px;height:400px;margin:0 auto}
+.ring svg{position:absolute;inset:0;width:100%;height:100%}
+.ring .tile{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-size:21px}
+.ring .mid{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--display);font-weight:700;font-size:30px;text-align:center;line-height:1.15;color:var(--need)}
+@keyframes spin{to{stroke-dashoffset:-28}}
+.ring ellipse{animation:spin 1.6s linear infinite}
+/* scenes */
+.scene{display:flex;flex-direction:column;gap:12px}
+.panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px 20px 20px;display:flex;flex-direction:column;gap:8px;transition:opacity .4s}
+.panel.dim{opacity:.28}
+.plabel{font-family:var(--display);font-weight:700;font-size:22px;display:flex;align-items:center;gap:10px}
+.pcap{font-size:19px;line-height:1.4;color:var(--muted);min-height:53px;transition:opacity .5s}
+.panel:not(.played) .pcap{opacity:0}
+.panel svg{width:100%;height:auto;display:block}
+.tt{font-family:var(--body);font-size:13px;font-weight:600}
+.th{font-family:var(--body);font-size:12.5px;font-weight:500;font-style:italic}
+.nr{font-family:Georgia,'Times New Roman',serif;font-size:14px;font-style:italic}
+.sm{font-family:var(--body);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.num2{font-family:var(--display);font-size:17px;font-weight:800}
+@keyframes shake{0%,100%{translate:0 0}20%{translate:-5px 2px}40%{translate:5px -2px}60%{translate:-3px 1px}80%{translate:3px 0}}
+svg.shake{animation:shake .3s linear}
+@keyframes rain{to{stroke-dashoffset:-12}}
+.rain{animation:rain .35s linear infinite}
+.replay{align-self:flex-start;font:600 15px var(--body);color:var(--paper);background:transparent;border:1.5px solid var(--line);border-radius:10px;padding:8px 16px;cursor:pointer}
+.replay:hover{border-color:var(--paper)}
+.watch{align-self:flex-start;display:inline-flex;align-items:center;gap:12px;font:600 22px var(--body);color:#fff;background:var(--ease-solid);border-radius:12px;padding:14px 24px;text-decoration:none;margin-top:8px}
+.watch:hover{background:#5571FF}
+.watch:focus-visible{outline:3px solid var(--paper);outline-offset:3px}
+.watch svg{width:22px;height:22px}
+.film{font-size:16px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.cols.three{grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.col .bn{font-family:var(--display);font-weight:800;font-size:22px;width:42px;height:42px;border-radius:11px;background:var(--ease-solid);color:#fff;display:grid;place-items:center}
+.col .q{font-family:var(--display);font-weight:700;font-size:29px;line-height:1.18;letter-spacing:-0.01em}
+.col .s{font-size:20px;line-height:1.4;color:var(--muted)}
+#grid{position:fixed;inset:0;background:var(--ground);overflow-y:auto;padding:28px 28px 90px;z-index:5}
+#grid[hidden]{display:none}
+#grid h2{font-size:28px;margin:0 0 18px 4px}
+#thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(256px,1fr));gap:18px;justify-items:center}
+.thumb{width:256px;padding:0;border:0;background:transparent;color:var(--muted);font:500 14px var(--body);cursor:pointer;display:flex;flex-direction:column;gap:6px;text-align:left}
+.thumb .win{width:256px;height:144px;position:relative;overflow:hidden;border-radius:10px;border:2px solid var(--line);background:var(--ground)}
+.thumb:hover .win{border-color:var(--muted)}
+.thumb.cur .win{border-color:var(--ease)}
+.thumb.cur{color:var(--paper)}
+.thumb .win .frame{position:absolute;left:0;top:0;transform:scale(.2);transform-origin:top left;pointer-events:none}
+#nav{z-index:6}
+.frame.photo .bg,.stage.photo .bg{position:absolute;right:72px;top:62px;width:500px;height:580px;object-fit:cover;border-radius:24px;border:1px solid var(--line);z-index:0}
+.frame.photo>*:not(.bg):not(.src),.stage.photo>*:not(.bg):not(.src){position:relative;z-index:1;max-width:560px}
+.frame.photo .big,.stage.photo .big{font-size:52px}
+.frame.photo .lead,.stage.photo .lead{font-size:24px}
+.pic{display:flex;flex-direction:column;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:14px}
+.pic img{width:100%;height:236px;object-fit:cover;border-radius:12px;display:block}
+.pic .tile{align-self:flex-start;font-size:22px}
+.cardimg{width:100%;height:150px;object-fit:cover;border-radius:12px;display:block}
+.clip{display:grid;grid-template-columns:minmax(0,1fr) 500px;gap:44px;align-items:center}
+.clip .txt{display:flex;flex-direction:column;gap:16px}
+.clip .steps li{font-size:25px}
+.player{display:flex;flex-direction:column;justify-content:space-between;aspect-ratio:16/9;border-radius:20px;background:linear-gradient(160deg,#243056,#141B30);border:1px solid var(--line);padding:22px 24px;text-decoration:none;color:var(--paper);position:relative;overflow:hidden}
+.player:hover{border-color:var(--ease)}
+.player:focus-visible{outline:3px solid var(--ease);outline-offset:3px}
+.player .yt{font-size:14px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.player .pb{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:92px;height:92px;border-radius:50%;background:var(--ease-solid);display:grid;place-items:center}
+.player .pb svg{width:40px;height:40px;margin-left:6px}
+.player .ft{font-family:var(--display);font-weight:700;font-size:24px;line-height:1.15}
+.player .ft span{display:block;font:500 15px var(--body);color:var(--muted);margin-top:4px}
+.url{font-size:15px;color:var(--muted);word-break:break-all}
+/* reveals */
+.r{opacity:0;translate:0 14px;transition:opacity .45s ease,translate .5s cubic-bezier(.2,.7,.2,1)}
+.r.on{opacity:1;translate:0 0}
+@keyframes rise{from{opacity:0;translate:0 16px}}
+@keyframes slidein{from{opacity:0;translate:-18px 0}}
+@keyframes pop{from{opacity:0;scale:.9}}
+.stage.live .i{animation:rise .6s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i)*90ms)}
+.r.on .tile{animation:pop .35s ease both;animation-delay:calc(var(--k)*70ms + 150ms)}
+.flow.r.on>*{animation:slidein .45s ease both;animation-delay:calc(var(--k)*200ms)}
+.strike,.tile.struck{transition:color .5s,text-decoration-color .5s,background-color .5s}
+.strike.pending,.tile.struck.pending{text-decoration-color:transparent;color:var(--paper)}
+#grid .r,#grid .i{opacity:1!important;translate:none!important}
+#grid .i,#grid .r *{animation:none!important}
+#pips{display:flex;gap:4px;align-items:center;min-width:8px}
+#pips i{width:6px;height:6px;border-radius:50%;background:var(--line)}
+#pips i.on{background:var(--ease)}
+@media (prefers-reduced-motion:reduce){.r{transition:none;translate:none}.stage.live .i,.r.on .tile,.flow.r.on>*{animation:none}}
+/* chrome */
+#nav{position:fixed;right:18px;bottom:14px;display:flex;align-items:center;gap:6px;background:rgba(23,31,54,.92);border:1px solid var(--line);border-radius:12px;padding:6px 8px}
+#nav button{font:600 15px var(--body);color:var(--paper);background:transparent;border:0;border-radius:8px;min-width:40px;height:36px;padding:0 10px;cursor:pointer}
+#nav button:hover{background:var(--panel2)}
+#count{font:500 14px var(--body);color:var(--muted);font-variant-numeric:tabular-nums;min-width:58px;text-align:center}
+#prog{position:fixed;left:18px;bottom:20px;display:flex;gap:4px}
+#prog i{width:12px;height:5px;border-radius:2px;background:var(--line)}
+#prog i.on{background:var(--ease)}
+button:focus-visible{outline:3px solid var(--ease);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.panel{transition:none}.ring ellipse{animation:none}}
+
+#start{position:fixed;inset:0;z-index:9;background:rgba(14,19,34,.86);display:grid;place-items:center;text-align:center;cursor:pointer}
+#start[hidden]{display:none}
+#start div{font-family:var(--display);font-weight:700;font-size:clamp(26px,4vw,46px);color:var(--paper)}
+#start p{font-size:clamp(15px,1.6vw,20px);color:var(--muted);margin-top:14px}
+#snd.off{color:var(--need)}
+.hint{position:absolute;right:80px;bottom:50px;font-size:14px;color:var(--muted);opacity:.7}
+.statrow{display:grid;grid-template-columns:auto minmax(0,1fr);gap:34px;align-items:center}
+.statrow .stat{font-size:120px}.statrow .stat small{font-size:34px;margin-left:10px}
+.statrow .lead{font-size:23px;max-width:none}
+.ratebox{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:10px 14px}
+.ratebox svg{width:100%;height:auto;display:block}
+.mini .num{font-size:150px!important}
+.bg.tun{background:var(--panel);overflow:hidden}
+.bg.tun svg{width:100%;height:100%;display:block}
+.beltbox svg{width:100%;height:auto;display:block}
+</style>
+</head>
+<body>
+<main id="deck" aria-label="How People Read You">
+
+<!-- 1 -->
+<section class="slide"><div class="frame center"><div class="shift two" style="grid-template-columns:minmax(0,1fr) 420px">
+  <div class="txt" style="gap:24px">
+    <div class="eyebrow">The psychology of presence, charisma and gravitas</div>
+    <h1>How People Read You</h1>
+    <p class="lead">What other people decide about you before you finish your first sentence, why they decide it, and what you can do about it.</p>
+  </div>
+  <svg class="vig" viewBox="0 0 360 300" data-vig="title" aria-hidden="true"></svg>
+</div></div></section>
+
+<!-- 2 -->
+<section class="slide"><div class="frame">
+  <div class="stage center">
+    <div class="eyebrow">Where we left off</div>
+    <h2>How charisma works: the two things to remember</h2>
+    <div class="cols" style="margin-top:8px">
+      <div class="col" style="padding:18px;gap:14px"><img class="cardimg" style="height:230px" src="img/feel.jpg" alt="A woman's face lighting up as she listens to a friend"><div class="q">People don't like you for who you are. They like you for the way you make them feel.</div></div>
+      <div class="col" style="padding:18px;gap:14px"><img class="cardimg" style="height:230px" src="img/laugh.jpg" alt="Two friends bursting into the same laugh, mirroring each other"><div class="q">Feelings are contagious.</div><div class="s">People mirror the emotion you bring into the room.</div></div>
+    </div>
+  </div>
+  <div class="stage center" style="gap:16px">
+    <div class="eyebrow">The next question</div>
+    <div class="big" style="font-size:54px;max-width:none">So what are they catching from you?</div>
+    <p class="body" style="max-width:none">If feelings are contagious, the feeling you walk in with matters more than anything you say.</p>
+    <div class="cols" style="gap:24px">
+      <div class="pic"><img src="img/tense.jpg" alt="An anxious man hunched over a cafe table; the woman opposite has crossed her arms and leans away"><span class="tile pale">Walk in needing something, and they catch pressure.</span></div>
+      <div class="pic"><img src="img/easy.jpg" alt="A relaxed, smiling man at a cafe table; the woman opposite is relaxed and smiling too"><span class="tile bluep">Walk in at ease, and they catch ease.</span></div>
+    </div>
+    <p class="body hi" style="max-width:none">Today is about where that feeling comes from, and how to change it.</p>
+  </div>
+</div></section>
+
+<!-- agenda -->
+<section class="slide"><div class="frame center">
+  <div class="eyebrow">Today</div>
+  <h2>Three questions</h2>
+  <ol class="steps" style="margin-top:14px;gap:26px">
+    <li><div>What do people decide about you in the first few seconds?</div></li>
+    <li><div>Where does that come from, and why can't you hide it?</div></li>
+    <li><div>What do you do instead?<span>Four shifts, and two guardrails.</span></div></li>
+  </ol>
+</div></section>
+
+<!-- 3 -->
+<section class="slide"><div class="frame">
+  <h2>Same résumé. Two entrances.</h2>
+  <p class="body">Who gets the job? Decide before anyone speaks.</p>
+  <div class="scene" data-scene="interviewSilent"></div>
+</div></section>
+
+<!-- 4 -->
+<section class="slide"><div class="frame">
+  <div class="stage" style="gap:14px">
+    <div class="eyebrow">You decided in seconds. So does everyone.</div>
+    <div class="statrow">
+      <div class="stat">0.1<small>seconds</small></div>
+      <p class="lead">People saw a stranger's face for a tenth of a second and judged it. Given all the time they wanted, they rarely changed their verdict. They only got surer.</p>
+    </div>
+    <div class="ratebox"><div data-rate="faces"></div></div>
+    <div class="src">Willis &amp; Todorov, 2006</div>
+  </div>
+  <div class="stage" style="gap:14px">
+    <div class="eyebrow">A different study: does the quick read last?</div>
+    <div class="statrow">
+      <div class="stat">10<small>seconds</small></div>
+      <p class="lead">Strangers watched silent clips of teachers that were 10 seconds or shorter. Their ratings matched what students said after a full semester.</p>
+    </div>
+    <div class="ratebox"><div data-rate="clips"></div></div>
+    <div class="src">Ambady &amp; Rosenthal, 1993</div>
+  </div>
+  <div class="stage center"><div class="shift two" style="grid-template-columns:minmax(0,1fr) 380px">
+    <div class="txt" style="gap:22px">
+      <div class="big">The clips had no sound.</div>
+      <p class="lead">Nobody was judging what the teachers said. They were judging how the teachers showed up.</p>
+      <p class="lead hi">The same thing happens to you in every room you walk into.</p>
+    </div>
+    <svg class="vig" viewBox="0 0 360 300" data-vig="mute" aria-hidden="true"></svg>
+  </div></div>
+</div></section>
+
+<!-- 5 -->
+<section class="slide"><div class="frame">
+  <h2>What they are reading</h2>
+  <p class="body">One question sits under every first impression: does this person need something from me?</p>
+  <div class="cols">
+    <div class="col"><h3><span class="dot n"></span>Need</h3>
+      <div class="tiles"><span class="tile pale">rushing in</span><span class="tile pale">apologizing first</span><span class="tile pale">filling every silence</span><span class="tile pale">explaining before you're asked</span><span class="tile pale">laughing to be liked</span></div></div>
+    <div class="col"><h3><span class="dot e"></span>Ease</h3>
+      <div class="tiles"><span class="tile bluep">taking your time</span><span class="tile bluep">starting with the point</span><span class="tile bluep">letting a pause sit</span><span class="tile bluep">answering what was asked</span><span class="tile bluep">being amused yourself</span></div></div>
+  </div>
+</div></section>
+
+<!-- 6 -->
+<section class="slide"><div class="frame">
+  <div class="stage center photo" data-snd="-5">
+    <div class="bg tun" data-tunnel></div>
+    <div class="eyebrow n">Why need leaks</div>
+    <div class="big">When you feel short of something, your mind narrows onto it.</div>
+    <p class="lead">Researchers call this tunneling. The thing you lack takes up the room you would use to listen, think and stay loose.</p>
+    <p class="lead hi">That is why you can't hide need by trying harder. Trying harder is the tunnel.</p>
+    <div class="src">Mullainathan &amp; Shafir, Scarcity, 2013</div>
+  </div>
+  <div class="stage" data-snd="0">
+    <div class="eyebrow n">The mechanism</div>
+    <h2>Need feeds itself</h2>
+    <div class="ring" role="img" aria-label="A loop: you need it, your attention narrows, it leaks into how you act, they feel the pressure, they pull back, and so you need it more.">
+      <svg viewBox="0 0 860 400" aria-hidden="true"><ellipse cx="430" cy="200" rx="270" ry="150" fill="none" stroke="#FF9A3C" stroke-width="2.5" stroke-dasharray="4 10" stroke-linecap="round" opacity=".7"></ellipse></svg>
+      <span class="tile req" style="left:430px;top:50px">1 · You need it</span>
+      <span class="tile pale" style="left:687px;top:154px">2 · Your attention narrows</span>
+      <span class="tile pale" style="left:589px;top:321px">3 · It leaks into how you act</span>
+      <span class="tile pale" style="left:271px;top:321px">4 · They feel the pressure</span>
+      <span class="tile pale" style="left:173px;top:154px">5 · They pull back</span>
+      <div class="mid">and so you<br>need it more</div>
+    </div>
+    <p class="body" style="max-width:none;text-align:center">Every scene in this deck is this loop, or the way out of it.</p>
+  </div>
+</div></section>
+
+<!-- 7 -->
+<section class="slide"><div class="frame">
+  <div class="stage center">
+    <div class="eyebrow">The reversal</div>
+    <div class="big strike" style="font-size:50px">How do I convince them?</div>
+    <div class="big">How would someone who is already fine behave?</div>
+    <p class="lead">Start from that state, and the loop never starts.</p>
+  </div>
+  <div class="stage">
+    <h2>What having options does to people</h2>
+    <div class="cols">
+      <div class="col"><h3><span class="dot e"></span>People with options</h3>
+        <div class="tiles"><span class="tile bluep">better mood</span><span class="tile bluep">eyes on what could go right</span><span class="tile bluep">say what they think</span><span class="tile bluep">act freely</span></div></div>
+      <div class="col"><h3><span class="dot n"></span>People without them</h3>
+        <div class="tiles"><span class="tile pale">watch for threats</span><span class="tile pale">track what everyone else wants</span><span class="tile pale">hold back</span><span class="tile pale">second-guess</span></div></div>
+    </div>
+    <p class="body">Four shifts move you from the right column to the left. Each one works for a specific reason.</p>
+    <div class="src">Keltner, Gruenfeld &amp; Anderson, 2003</div>
+  </div>
+</div></section>
+
+<!-- 8 · Shift 1 -->
+<section class="slide"><div class="frame">
+  <div class="stage center"><div class="shift">
+    <div class="num">1</div>
+    <div class="txt"><div class="eyebrow">Shift one</div><h2>Outcome independence</h2><p class="lead">You are fine no matter how this conversation goes.</p></div>
+    <svg class="vig" viewBox="0 0 360 300" data-vig="s1" aria-hidden="true"></svg>
+  </div></div>
+  <div class="stage">
+    <h2>Same résumé. Two entrances.</h2>
+    <p class="body">Remember these two? This time with the sound on.</p>
+    <div class="scene" data-scene="interview"></div>
+  </div>
+  <div class="stage center">
+    <div class="eyebrow">Shift one · why it works</div>
+    <h2>Pressure makes people protect their freedom</h2>
+    <p class="body">When people feel pushed toward a choice, they push back to keep the choice theirs. Psychologists call it reactance.</p>
+    <div class="flowhead"><span>What you do</span><span>.</span><span>What happens in their head</span><span>.</span><span>What you get</span></div>
+    <div class="flows">
+      <div class="flow n"><div class="step">Send message after message</div><div class="arr"></div><div class="step">They feel pushed toward yes</div><div class="arr"></div><div class="step">They protect their freedom by saying no, or nothing</div></div>
+      <div class="flow e"><div class="step">Ask once, then get on with your day</div><div class="arr"></div><div class="step">The choice stays theirs</div><div class="arr"></div><div class="step">Yes is easy to say, and no costs you nothing</div></div>
+    </div>
+    <div class="src">Brehm, A Theory of Psychological Reactance, 1966</div>
+  </div>
+  <div class="stage">
+    <h2>The follow-up text</h2>
+    <p class="body">You asked a friend to hang out. No reply yet.</p>
+    <div class="scene" data-scene="text"></div>
+  </div>
+  <div class="stage center">
+    <div class="eyebrow">You may have heard this from dating gurus. Here is the version that holds up.</div>
+    <h2>Independence is not indifference</h2>
+    <div class="tiles" style="margin:10px 0 0"><span class="tile struck" style="font-size:38px;padding:12px 24px">I don't care.</span></div>
+    <div class="tiles"><span class="tile blue" style="font-size:38px;padding:12px 24px">I want this. I don't need it.</span></div>
+    <p class="lead" style="margin-top:10px">Acting like you don't care is a performance, and a performance still needs an audience.</p>
+  </div>
+</div></section>
+
+<!-- 9 · Shift 2 -->
+<section class="slide"><div class="frame">
+  <div class="stage center"><div class="shift">
+    <div class="num">2</div>
+    <div class="txt"><div class="eyebrow">Shift two</div><h2>Abundance</h2><p class="lead">Build it. Don't pose it.</p>
+      <div class="tiles"><span class="tile bluep">apply to ten places</span><span class="tile bluep">keep several friendships going</span><span class="tile bluep">have your own plans</span></div></div>
+    <svg class="vig" viewBox="0 0 360 300" data-vig="s2" aria-hidden="true"></svg>
+  </div></div>
+  <div class="stage center">
+    <div class="eyebrow">Shift two · why it works</div>
+    <h2>Whoever needs the other more has less power</h2>
+    <p class="body">Their power over you equals how much you depend on them. Options lower your dependence, and that can't be faked, which is why you build them.</p>
+    <div class="flowhead"><span>What you have</span><span>.</span><span>What that does</span><span>.</span><span>What you get</span></div>
+    <div class="flows">
+      <div class="flow n"><div class="step">One plan, one group, one job lead</div><div class="arr"></div><div class="step">You depend on it completely, and it shows</div><div class="arr"></div><div class="step">They hold the power, and you fish for a yes</div></div>
+      <div class="flow e"><div class="step">Several plans, several groups, several leads</div><div class="arr"></div><div class="step">You depend on no single one</div><div class="arr"></div><div class="step">You can ask plainly and take a no</div></div>
+    </div>
+    <div class="src">Emerson, Power-Dependence Relations, 1962</div>
+  </div>
+  <div class="stage">
+    <h2>Left out of the plan</h2>
+    <p class="body">Your friends are doing something Friday. Nobody mentioned it to you.</p>
+    <div class="scene" data-scene="leftout"></div>
+  </div>
+</div></section>
+
+<!-- 10 · Shift 3 -->
+<section class="slide"><div class="frame">
+  <div class="stage center"><div class="shift">
+    <div class="num">3</div>
+    <div class="txt"><div class="eyebrow">Shift three</div><h2>When you're explaining, you're losing</h2><p class="lead">Explain when asked. Never defend unasked.</p></div>
+    <svg class="vig" viewBox="0 0 360 300" data-vig="s3" aria-hidden="true"></svg>
+  </div></div>
+  <div class="stage center">
+    <div class="eyebrow">Shift three · why it works</div>
+    <h2>People average your reasons. They don't add them up.</h2>
+    <p class="body">We assume more reasons make a stronger case. Listeners blend them, so every weak reason drags the strong one down. Hedges like "I just" and "sort of" also make a speaker sound less credible.</p>
+    <div class="flowhead"><span>What you say</span><span>.</span><span>What happens in their head</span><span>.</span><span>What you get</span></div>
+    <div class="flows">
+      <div class="flow n"><div class="step">One strong reason, then five weaker ones</div><div class="arr"></div><div class="step">They average all six</div><div class="arr"></div><div class="step">The whole case feels weaker than the first reason alone</div></div>
+      <div class="flow e"><div class="step">One strong reason, then silence</div><div class="arr"></div><div class="step">Nothing dilutes it</div><div class="arr"></div><div class="step">It lands at full strength</div></div>
+    </div>
+    <div class="src">Weaver, Garcia &amp; Schwarz, The Presenter's Paradox, 2012 · Erickson, Lind, Johnson &amp; O'Barr, 1978</div>
+  </div>
+  <div class="stage">
+    <h2>“Why did you do it this way?”</h2>
+    <p class="body">Your boss asks about your work in front of the team.</p>
+    <div class="scene" data-scene="boss"></div>
+  </div>
+</div></section>
+
+<!-- 11 · Shift 4 -->
+<section class="slide"><div class="frame">
+  <div class="stage center"><div class="shift">
+    <div class="num">4</div>
+    <div class="txt"><div class="eyebrow">Shift four</div><h2>Amuse yourself</h2><p class="lead">I am not trying to make you laugh. I make myself laugh, and you are here with me.</p><p class="body">In the charisma lesson, interesting and funny people were two of the three kinds we want to be around. This is where both come from.</p></div>
+    <svg class="vig" viewBox="0 0 360 300" data-vig="s4" aria-hidden="true"></svg>
+  </div></div>
+  <div class="stage" style="gap:13px">
+    <div class="eyebrow">Shift four · where interesting comes from</div>
+    <h2>Being interesting starts with being interested</h2>
+    <p class="body">Your interest is catchy. When you tell a story or a joke, put your attention on the story, not on the audience.</p>
+    <div class="cols">
+      <div class="col"><h3><span class="dot n"></span>Watching the audience</h3>
+        <div class="tiles"><span class="tile pale">is this landing?</span><span class="tile pale">checking for approval</span><span class="tile pale">rushing to the punchline</span><span class="tile pale">explaining why it's funny</span></div></div>
+      <div class="col"><h3><span class="dot e"></span>Inside the story</h3>
+        <div class="tiles"><span class="tile bluep">seeing it happen again</span><span class="tile bluep">still finding it funny</span><span class="tile bluep">taking your time</span><span class="tile bluep">enjoying the telling</span></div></div>
+    </div>
+    <p class="body hi">Tell it for how interesting or funny it is to you. That is what rubs off on them.</p>
+    <p class="body" style="font-size:22px;max-width:none">This doesn't mean ignoring them. Keep reading their faces, even the small flickers, and if they've checked out, wrap it up. You're watching to steer the story, not to be approved of.</p>
+  </div>
+  <div class="stage center">
+    <div class="eyebrow">Shift four · why it works</div>
+    <h2>People catch your state</h2>
+    <p class="body">You know this one as emotional mirroring. We automatically copy the expressions, posture and tone of whoever we're with, and start to feel what they feel. A joke that lands also reads as confidence and competence.</p>
+    <div class="flowhead"><span>How you arrive</span><span>.</span><span>What happens in them</span><span>.</span><span>What you get</span></div>
+    <div class="flows">
+      <div class="flow n"><div class="step">Tense, watching for approval</div><div class="arr"></div><div class="step">They mirror your tension without knowing why</div><div class="arr"></div><div class="step">The group feels awkward and closes up</div></div>
+      <div class="flow e"><div class="step">Curious, already enjoying yourself</div><div class="arr"></div><div class="step">They mirror your ease</div><div class="arr"></div><div class="step">The group relaxes and makes room</div></div>
+    </div>
+    <div class="src">Hatfield, Cacioppo &amp; Rapson, 1993 · Bitterly, Brooks &amp; Schweitzer, 2017</div>
+  </div>
+  <div class="stage">
+    <h2>Walking up to the group</h2>
+    <p class="body">A party. Three people you don't know are mid-conversation.</p>
+    <div class="scene" data-scene="party"></div>
+  </div>
+</div></section>
+
+<!-- 12 -->
+<section class="slide"><div class="frame center"><div class="clip">
+  <div class="txt">
+    <div class="eyebrow">Watch · what works</div>
+    <h2>The interview in paint-splattered clothes</h2>
+    <ol class="steps"><li><div>He says why he looks like this, once, and doesn't grovel.</div></li><li><div>The joke works because he is enjoying it too.</div></li><li><div>By the end, look at who is leaning in.</div></li></ol>
+  </div>
+  <div class="txt">
+    <a class="player" href="https://www.youtube.com/watch?v=1ZKJSCt3FKY" target="_blank" rel="noopener" aria-label="Play the clip from The Pursuit of Happyness on YouTube">
+      <span class="yt">Movie clip · opens YouTube</span>
+      <span class="pb"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg></span>
+      <span class="ft">The Pursuit of Happyness<span>2006 · the job interview</span></span>
+    </a>
+    <div class="url">youtube.com/watch?v=1ZKJSCt3FKY</div>
+  </div>
+</div></div></section>
+
+<!-- 13 -->
+<section class="slide"><div class="frame">
+  <div class="stage center photo">
+    <img class="bg" src="img/door.jpg" alt="An executive holding a boardroom door open for a confident young professional">
+    <div class="eyebrow">Putting it together</div>
+    <h2 style="font-size:40px">Presence decides which doors open. Talent decides what happens inside.</h2>
+    <div class="cols" style="grid-template-columns:1fr;gap:12px">
+      <div class="col" style="padding:16px 20px;gap:8px"><h3 style="font-size:23px"><span class="dot e"></span>First: can I see them in this role?</h3><div class="s" style="font-size:18px">Answered fast, from how you carry yourself. It has little to do with how good you are.</div></div>
+      <div class="col" style="padding:16px 20px;gap:8px"><h3 style="font-size:23px"><span class="dot k"></span>Second: can they do it?</h3><div class="s" style="font-size:18px">Answered slowly, from your work. Presence can't answer this one for you.</div></div>
+    </div>
+    <p class="body" style="font-size:20px">On executive presence:<br><span class="hi" style="font-size:23px">“No man or woman attains power or exerts influence without it.”</span></p>
+    <div class="src">Sylvia Ann Hewlett, Center for Talent Innovation, 2013</div>
+  </div>
+  <div class="stage center">
+    <div class="eyebrow">The reversal, again</div>
+    <h2>Be the person who holds the role, not the person who wishes they did</h2>
+    <div class="cols" style="margin-top:6px">
+      <div class="col"><h3><span class="dot n"></span>Wishing for it</h3>
+        <div class="tiles"><span class="tile pale">asks permission to speak</span><span class="tile pale">proves they belong</span><span class="tile pale">waits to be picked</span><span class="tile pale">thanks everyone for the chance</span></div></div>
+      <div class="col"><h3><span class="dot e"></span>Holding it</h3>
+        <div class="tiles"><span class="tile bluep">does the job in front of them</span><span class="tile bluep">speaks as a peer</span><span class="tile bluep">assumes they belong</span><span class="tile bluep">looks for how to help the room</span></div></div>
+    </div>
+    <p class="body">It is the same question as before: how would someone who already has this behave?</p>
+  </div>
+</div></section>
+
+<!-- 14 -->
+<section class="slide"><div class="frame center photo">
+  <div class="bg tun" data-fake style="top:150px;height:420px"></div>
+  <div class="eyebrow">Isn't that fake?</div>
+  <div class="big">Authentic doesn't mean staying who you have been.</div>
+  <p class="lead">Every new role feels like a costume at first. New behavior usually feels fake before it feels like yours, and that feeling is a sign you're growing.</p>
+  <p class="lead hi">You aren't pretending to be someone else. You're getting comfortable in the role and the room you're in.</p>
+  <div class="src">Ibarra, The Authenticity Paradox, Harvard Business Review, 2015</div>
+</div></section>
+
+<!-- 15 -->
+<section class="slide"><div class="frame">
+  <div class="stage center"><div class="shift guard" style="grid-template-columns:auto minmax(0,1fr) 290px;gap:34px">
+    <div class="num">A</div>
+    <div class="txt"><div class="eyebrow">Guardrail: warmth</div><h2>First, people ask: do you mean well?</h2>
+      <p class="lead">Ease without interest in the other person reads as arrogance. People who ask follow-up questions are liked more.</p><p class="body hi">Remember: the biggest compliment you can pay someone is your attention.</p></div>
+    <svg class="vig" viewBox="0 0 360 300" data-vig="warm" aria-hidden="true"></svg>
+  </div><div class="src">Fiske, Cuddy &amp; Glick, 2007 · Huang, Yeomans, Brooks, Minson &amp; Gino, 2017</div></div>
+  <div class="stage center"><div class="shift guard" style="grid-template-columns:auto minmax(0,1fr) 290px;gap:34px">
+    <div class="num">B</div>
+    <div class="txt"><div class="eyebrow">Guardrail: competence</div><h2>Then they ask: can you deliver?</h2>
+      <p class="lead hi">Confidence gets you the room. Being found out loses it.</p>
+      <p class="lead">Confident people get read as competent, even when they aren't. That lasts until the work is due.</p><p class="lead hi">So be good at the thing.</p></div>
+    <svg class="vig" viewBox="0 0 360 300" data-vig="comp" aria-hidden="true"></svg>
+  </div><div class="src">Anderson, Brion, Moore &amp; Kennedy, 2012</div></div>
+</div></section>
+
+<!-- 16 -->
+<section class="slide"><div class="frame center"><div class="clip">
+  <div class="txt">
+    <div class="eyebrow n">Watch · the guardrail</div>
+    <h2>Total command, no warmth</h2>
+    <ol class="steps"><li><div>She never raises her voice or speeds up.</div></li><li><div>She explains nothing she wasn't asked, and the room is hers.</div></li><li><div>Nobody relaxes. Would you want to work for her?</div></li></ol>
+  </div>
+  <div class="txt">
+    <a class="player" href="https://www.youtube.com/watch?v=10LSyQk7BxE" target="_blank" rel="noopener" aria-label="Play the clip from The Devil Wears Prada on YouTube">
+      <span class="yt">Movie clip · opens YouTube</span>
+      <span class="pb"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg></span>
+      <span class="ft">The Devil Wears Prada<span>2006 · the cerulean speech</span></span>
+    </a>
+    <div class="url">youtube.com/watch?v=10LSyQk7BxE</div>
+  </div>
+</div></div></section>
+
+<!-- 17 -->
+<section class="slide"><div class="frame">
+  <div class="stage center">
+    <div class="eyebrow">Getting a no · why this works</div>
+    <h2>A question hands the decision back</h2>
+    <p class="body">This is reactance again. Chasing a no tries to take the decision away from the person who made it. A question leaves it with them.</p>
+    <div class="flowhead"><span>What you do</span><span>.</span><span>What happens in their head</span><span>.</span><span>What you get</span></div>
+    <div class="flows">
+      <div class="flow n"><div class="step">Argue with the no</div><div class="arr"></div><div class="step">They feel their decision being overruled</div><div class="arr"></div><div class="step">They defend it, and it hardens</div></div>
+      <div class="flow e"><div class="step">Accept it, then ask what would change it</div><div class="arr"></div><div class="step">The decision is still theirs</div><div class="arr"></div><div class="step">They can revise it later without losing face</div></div>
+    </div>
+    <div class="src">Brehm, 1966</div>
+  </div>
+  <div class="stage">
+    <h2>Getting a no</h2>
+    <p class="body">You pitched for the work. The answer comes back.</p>
+    <div class="scene" data-scene="no"></div>
+  </div>
+</div></section>
+
+<!-- 18 -->
+<section class="slide"><div class="frame">
+  <div class="stage center" style="gap:16px">
+    <div class="eyebrow">This is learnable</div>
+    <div class="big" style="font-size:50px;max-width:none">Charisma is a set of behaviors, and behaviors can be practiced.</div>
+    <p class="body" style="max-width:none">In one study, managers were coached on twelve habits that charismatic speakers share. Three months later, their coworkers rated them higher as leaders.</p>
+    <div class="cols" style="grid-template-columns:1.9fr 1fr;gap:20px">
+      <div class="col" style="padding:20px 22px;gap:12px"><h3 style="font-size:23px"><span class="dot e"></span>Nine in what they said</h3>
+        <div class="tiles"><span class="tile bluep" style="font-size:19px">metaphors</span><span class="tile bluep" style="font-size:19px">stories</span><span class="tile bluep" style="font-size:19px">contrasts</span><span class="tile bluep" style="font-size:19px">rhetorical questions</span><span class="tile bluep" style="font-size:19px">lists of three</span><span class="tile bluep" style="font-size:19px">saying what they believe is right</span><span class="tile bluep" style="font-size:19px">voicing what the group feels</span><span class="tile bluep" style="font-size:19px">setting a high goal</span><span class="tile bluep" style="font-size:19px">showing confidence it can be met</span></div></div>
+      <div class="col" style="padding:20px 22px;gap:12px"><h3 style="font-size:23px"><span class="dot k"></span>Three in how they said it</h3>
+        <div class="tiles"><span class="tile paper" style="font-size:19px">an animated voice</span><span class="tile paper" style="font-size:19px">facial expression</span><span class="tile paper" style="font-size:19px">gestures</span></div></div>
+    </div>
+    <div class="src">Antonakis, Fenley &amp; Liechti, 2011</div>
+  </div>
+</div></section>
+
+<!-- 19 -->
+<section class="slide"><div class="frame center" style="gap:14px">
+  <div class="eyebrow">What to remember, and take with you</div>
+  <h2>Four shifts, four tools for your toolbelt</h2>
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:36px;align-items:center">
+    <ol class="steps" style="gap:13px">
+      <li style="font-size:26px;align-items:center"><div><span style="font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ease);margin:0 0 2px">Outcome independence</span>Pause for two seconds before you answer.<span style="font-size:19px;margin-top:2px">Notice how hard it is, and that nothing bad happens.</span></div></li>
+      <li style="font-size:26px;align-items:center"><div><span style="font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ease);margin:0 0 2px">Abundance</span>Make the plan and invite people to it.<span style="font-size:19px;margin-top:2px">You go whether or not they come.</span></div></li>
+      <li style="font-size:26px;align-items:center"><div><span style="font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ease);margin:0 0 2px">When you're explaining, you're losing</span>Say what you want once, then stop.<span style="font-size:19px;margin-top:2px">No reasons attached unless someone asks for them.</span></div></li>
+      <li style="font-size:26px;align-items:center"><div><span style="font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ease);margin:0 0 2px">Amuse yourself</span>Stay inside your story.<span style="font-size:19px;margin-top:2px">Tell it for what's interesting or funny to you. Read the room, but don't perform for it.</span></div></li>
+    </ol>
+    <div class="beltbox" data-belt></div>
+  </div>
+  <p class="body hi" style="font-size:22px;max-width:none">And two guardrails: stay interested in them, and be good at the thing.</p>
+</div></section>
+
+<!-- 21 -->
+<section class="slide"><div class="frame center"><div class="shift two" style="grid-template-columns:minmax(0,1fr) 420px">
+  <div class="txt" style="gap:22px">
+    <div class="eyebrow">If you remember one thing</div>
+    <div class="big" style="font-size:84px;line-height:1">Be fine first.</div>
+    <p class="lead">People like you for the way you make them feel, and they can only catch from you what you already have.</p>
+    <p class="lead hi">So before you walk into the room, the interview or the conversation, get to where you'd be okay either way. Then go in.</p>
+  </div>
+  <svg class="vig" viewBox="0 0 360 300" data-vig="end" aria-hidden="true"></svg>
+</div></div></section>
+
+</main>
+
+<div id="start" role="button" tabindex="0" aria-label="Start the presentation with sound"><div><div>Press any key to start</div><p>Sound is on. Space or → plays the next step · R replays a scene · M mutes · G shows all slides</p></div></div>
+<div id="grid" hidden role="dialog" aria-label="All slides"><h2>All slides</h2><div id="thumbs"></div></div>
+<div id="prog" aria-hidden="true"></div>
+<nav id="nav" aria-label="Slide controls">
+  <button id="prev" type="button" aria-label="Previous step or slide">←</button>
+  <span id="count">1 / 21</span>
+  <span id="pips" aria-hidden="true"></span>
+  <button id="next" type="button" aria-label="Next step or slide">→</button>
+  <button id="snd" type="button" aria-pressed="true">Sound on</button>
+  <button id="all" type="button" aria-expanded="false">All slides</button>
+  <button id="full" type="button">Full screen</button>
+</nav>
+
+<script>
+(function(){
+'use strict';
+var NS='http://www.w3.org/2000/svg';
+var PAPER='#E9E4D8', NEED='#FF9A3C', EASE='#7F97FF', GREY='#8C97B3', INK='#0E1322';
+var TS={req:{bg:NEED,fg:'#1A1206'}, pale:{bg:'#4A3422',fg:'#FFD2A1'}, blue:{bg:'#4460F0',fg:'#FFFFFF'}, paper:{bg:'#F4F0E8',fg:'#0E1322'}};
+var FLOOR=290, TH=22, ROW=24;
+var REDUCED=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var LINES={"iv.n0": "I'd like the role", "iv.n1": "sorry I'm early", "iv.n2": "I know you're busy", "iv.n3": "I just", "iv.n4": "honestly, any role", "iv.n5": "I really need this", "iv.n6": "does that make sense?", "iv.e0": "I'd like the role.", "iv.r": "Tell me more.", "tx.n0": "Want to hang out Saturday?", "tx.t1": "They probably didn't see it. Send another.", "tx.n1": "no worries if not!", "tx.n2": "??", "tx.n3": "sorry to bug you", "tx.n4": "did you see this?", "tx.n5": "it's fine either way", "tx.n6": "hello?", "tx.t2": "Nailed it.", "tx.e0": "Want to hang out Saturday?", "tx.t3": "Anyway. Lunch.", "tx.r": "Can't Saturday. Sunday?", "lo.n0": "What are you all doing Friday?", "lo.n1": "must be nice", "lo.n2": "I'm free, by the way", "lo.n3": "nobody tells me anything", "lo.n4": "it's fine", "lo.n5": "I'll just stay in", "lo.e0": "I'm getting pizza Friday. Come.", "lo.r": "I'm in.", "lo.r2": "Me too!", "bs.p": "Why did you do it this way?", "bs.n0": "It halves the load time", "bs.n1": "well, I mean", "bs.n2": "I wasn't sure", "bs.n3": "Sam said it was fine", "bs.n4": "I can redo it", "bs.n5": "sorry", "bs.n6": "it took me all week", "bs.e0": "It halves the load time.", "bs.t1": "Don't fill the silence. Do NOT fill the silence.", "bs.r": "Good. Ship it.", "pt.x1": "Here we see the newcomer, approaching the herd.", "pt.x2": "He circles. Once. Twice.", "pt.n0": "Hi, I'm new here", "pt.n1": "sorry to interrupt", "pt.x3": "He has chosen to apologize. A bold strategy.", "pt.n2": "you probably don't care", "pt.n3": "I love that band too!", "pt.n4": "ha ha ha", "pt.n5": "anyway", "pt.x4": "The herd closes ranks. Nature can be cruel.", "pt.x5": "A second newcomer. Note: no circling.", "pt.e0": "Hey. What's the story here?", "pt.r": "Pull up a chair.", "pt.x6": "Extraordinary. Accepted by the herd in under ten seconds.", "no.p": "It's a no for now.", "no.n0": "Could you reconsider?", "no.n1": "please", "no.n2": "I'll do anything", "no.n3": "what did I do wrong?", "no.n4": "one more chance", "no.n5": "I can lower my price", "no.n6": "are you sure?", "no.e0": "Fair enough. What would change it?", "no.r": "More client experience.", "no.e1": "Got it. Thanks.", "no.e2": "Two client projects, done.", "no.r2": "Now it's a yes.", "fk.1": "Okay. It's a little big.", "fk.2": "Still finding the sleeves.", "fk.3": "Huh. It fits.", "fk.5": "This isn't me!", "fk.4": "It's not fake. It's new."}, DUR={"boing": 0.84, "bs_e0": 1.8, "bs_n0": 1.96, "bs_n1": 2.27, "bs_n2": 1.88, "bs_n3": 1.65, "bs_n4": 1.41, "bs_n5": 1.72, "bs_n6": 2.35, "bs_p": 1.41, "bs_r": 2.12, "bs_t1": 4.28, "buzz": 0.84, "chatter": 6.03, "click": 0.52, "clink": 0.73, "crash": 1.23, "crickets": 3.03, "ding": 0.84, "door": 1.04, "fk_1": 2.85, "fk_2": 2.19, "fk_3": 2.43, "fk_4": 2.19, "fk_5": 1.41, "heartbeat": 5.04, "iv_e0": 2.19, "iv_n0": 1.65, "iv_n1": 1.96, "iv_n2": 1.65, "iv_n3": 3.0, "iv_n4": 2.04, "iv_n5": 2.12, "iv_n6": 1.31, "iv_r": 1.49, "lo_e0": 2.19, "lo_n0": 2.12, "lo_n1": 1.96, "lo_n2": 2.19, "lo_n3": 2.19, "lo_n4": 1.72, "lo_n5": 3.24, "lo_r": 1.41, "lo_r2": 0.99, "loop": 1.52, "no_e0": 3.63, "no_e1": 1.96, "no_e2": 2.12, "no_n0": 2.27, "no_n1": 2.77, "no_n2": 2.27, "no_n3": 1.72, "no_n4": 2.43, "no_n5": 1.96, "no_n6": 1.88, "no_p": 1.96, "no_r": 2.04, "no_r2": 2.04, "open": 1.04, "pluck": 0.63, "pt_e0": 2.27, "pt_n0": 2.51, "pt_n1": 1.49, "pt_n2": 1.57, "pt_n3": 1.72, "pt_n4": 2.35, "pt_n5": 2.35, "pt_r": 0.99, "pt_x1": 3.16, "pt_x2": 3.24, "pt_x3": 4.52, "pt_x4": 4.36, "pt_x5": 3.47, "pt_x6": 5.33, "skip": 1.52, "soft": 0.52, "steps_fast": 1.65, "steps_slow": 2.04, "thud": 0.52, "thunk": 0.52, "tick": 3.03, "tiptoe": 4.05, "trombone": 2.51, "tx_e0": 2.77, "tx_n0": 1.23, "tx_n1": 1.57, "tx_n2": 1.96, "tx_n3": 1.88, "tx_n4": 1.65, "tx_n5": 1.8, "tx_n6": 1.49, "tx_r": 1.88, "tx_t1": 2.69, "tx_t2": 1.49, "tx_t3": 2.04, "violin": 5.04, "whistle": 2.51, "whoosh": 0.63, "win": 1.04};
+var CANCEL={cancel:true};
+function noop(){}
+
+/* ---------- audio ---------- */
+var MUTED=false, pool={};
+function asrc(id){var k=id.replace('.','_');return (window.AUD&&window.AUD[k])||('audio/'+k+'.mp3');}
+function getAudio(id){
+  var a=pool[id];
+  if(!a){a=pool[id]=new Audio(asrc(id));a.preload='auto';return a;}
+  if(!a.paused&&!a.ended){var b=a.cloneNode();return b;}
+  return a;
+}
+function playFx(id,rate,vol){if(MUTED)return;try{var a=getAudio(id);a.currentTime=0;a.volume=vol;if('preservesPitch' in a)a.preservesPitch=false;a.playbackRate=rate;var p=a.play();if(p&&p.catch)p.catch(noop);}catch(e){}}
+function preload(ids){ids.forEach(function(id){if(!pool[id]){var a=pool[id]=new Audio(asrc(id));a.preload='auto';try{a.load();}catch(e){}}});}
+
+/* ---------- svg helpers ---------- */
+function el(tag,attrs,parent){var e=document.createElementNS(NS,tag);for(var k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+function easeIO(p){return p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;}
+function easeIn(p){return p*p;}
+function easeOut(p){return 1-(1-p)*(1-p);}
+function easeBack(p){var c=1.9;return 1+(c+1)*Math.pow(p-1,3)+c*Math.pow(p-1,2);}
+function textW(t,fallback){var w=0;try{w=t.getComputedTextLength();}catch(e){}return w||fallback;}
+function makeTile(layer,text,style){
+  var st=TS[style], g=el('g',{},layer);
+  var r=el('rect',{height:TH,rx:5,fill:st.bg},g);
+  var t=el('text',{x:8,y:15.5,fill:st.fg,'class':'tt'},g);t.textContent=text;
+  var w=Math.ceil(textW(t,text.length*7.2))+16;r.setAttribute('width',w);
+  return {g:g,w:w};
+}
+
+/* ---------- figure: a stem and a head, now with a face ---------- */
+function Fig(svg,x,color,floor){
+  this.x=x;this.dx=0;this.dy=0;this.lean=0;this.wob=0;this.dir=1;this.sq=1;this.o=1;this.k=1;
+  this.expr='calm';this.talk=0;this.sweat=0;this.look=0;this.lookY=0;this.hx=x;this.hy=0;this.floor=floor||FLOOR;
+  this.seed=Math.random()*3000;
+  this.sh=el('ellipse',{cy:this.floor+3,rx:26,ry:4,fill:'#000',opacity:.4},svg);
+  this.g=el('g',{},svg);
+  this.stem=el('path',{fill:'none',stroke:color,'stroke-width':24,'stroke-linecap':'round'},this.g);
+  this.head=el('circle',{r:19,fill:color},this.g);
+  this.face=el('g',{},this.g);
+  this.w1=el('circle',{r:6,fill:'#fff'},this.face);this.w2=el('circle',{r:6,fill:'#fff'},this.face);
+  this.e1=el('ellipse',{fill:INK},this.face);this.e2=el('ellipse',{fill:INK},this.face);
+  this.b1=el('line',{stroke:INK,'stroke-width':2.2,'stroke-linecap':'round'},this.face);
+  this.b2=el('line',{stroke:INK,'stroke-width':2.2,'stroke-linecap':'round'},this.face);
+  this.mouth=el('path',{fill:'none',stroke:INK,'stroke-width':2.2,'stroke-linecap':'round'},this.face);
+  this.mo=el('ellipse',{fill:INK,rx:3},this.face);
+  this.drops=[0,1,2].map(function(){return el('path',{d:'M0,-5 C3,0 3,3 0,4 C-3,3 -3,0 0,-5Z',fill:'#9FD4FF',opacity:0},svg);});
+  this.draw(0,false);
+}
+Fig.prototype.color=function(c){this.stem.setAttribute('stroke',c);this.head.setAttribute('fill',c);};
+Fig.prototype.draw=function(now,live){
+  var a=this.lean+((live&&this.wob)?Math.sin(now/150)*0.05:0);
+  var fx=this.x+this.dx, fy=this.floor-14+this.dy, L=96*this.sq;
+  var tx=fx+L*Math.sin(a), ty=fy-L*Math.cos(a), cx=fx, cy=fy-L*0.55;
+  this.stem.setAttribute('d','M'+fx.toFixed(1)+','+fy.toFixed(1)+' Q'+cx.toFixed(1)+','+cy.toFixed(1)+' '+tx.toFixed(1)+','+ty.toFixed(1));
+  var ux=tx-cx, uy=ty-cy, n=Math.hypot(ux,uy)||1;
+  this.hx=tx+ux/n*36; this.hy=ty+uy/n*36;
+  this.head.setAttribute('cx',this.hx.toFixed(1)); this.head.setAttribute('cy',this.hy.toFixed(1));
+  this.sh.setAttribute('cx',(fx+(tx-fx)*0.35).toFixed(1));
+  this.g.setAttribute('opacity',this.o.toFixed(2));this.sh.setAttribute('opacity',(0.4*this.o).toFixed(2));
+  /* face */
+  var d=this.dir, ex=this.expr, ox=d*6, sp=6.5, ey=-3;
+  var blink=live&&(ex==='calm'||ex==='happy')&&((now+this.seed)%3400<130);
+  var rx=2.7, ry=3.5, wide=0, mouth='smile', brow=0;
+  if(ex==='happy'){ry=3.5;mouth='grin';}
+  else if(ex==='panic'){wide=1;rx=2.3;ry=2.3;mouth='wob';brow=1;}
+  else if(ex==='side'){ry=1.9;mouth='flat';}
+  else if(ex==='bored'){ry=1.3;mouth='flat';}
+  else if(ex==='sad'){ry=3;mouth='frown';brow=2;}
+  else if(ex==='flat'){mouth='flat';}
+  if(blink)ry=.5;
+  var lx=this.look*2.4+(wide?(live?Math.sin(now/90)*0.8:0):0), ly=this.lookY*2;
+  this.face.setAttribute('transform','translate('+this.hx.toFixed(1)+','+this.hy.toFixed(1)+')');
+  var x1=ox-sp, x2=ox+sp;
+  this.w1.setAttribute('cx',x1);this.w1.setAttribute('cy',ey);this.w2.setAttribute('cx',x2);this.w2.setAttribute('cy',ey);
+  this.w1.setAttribute('opacity',wide);this.w2.setAttribute('opacity',wide);
+  [[this.e1,x1],[this.e2,x2]].forEach(function(p){p[0].setAttribute('cx',(p[1]+lx).toFixed(1));p[0].setAttribute('cy',(ey+ly).toFixed(1));p[0].setAttribute('rx',rx);p[0].setAttribute('ry',ry);});
+  if(brow===1){this.b1.setAttribute('x1',x1-5);this.b1.setAttribute('y1',ey-9);this.b1.setAttribute('x2',x1+4);this.b1.setAttribute('y2',ey-11);this.b2.setAttribute('x1',x2-4);this.b2.setAttribute('y1',ey-11);this.b2.setAttribute('x2',x2+5);this.b2.setAttribute('y2',ey-9);}
+  else if(brow===2){this.b1.setAttribute('x1',x1-5);this.b1.setAttribute('y1',ey-6);this.b1.setAttribute('x2',x1+4);this.b1.setAttribute('y2',ey-9);this.b2.setAttribute('x1',x2-4);this.b2.setAttribute('y1',ey-9);this.b2.setAttribute('x2',x2+5);this.b2.setAttribute('y2',ey-6);}
+  this.b1.setAttribute('opacity',brow?1:0);this.b2.setAttribute('opacity',brow?1:0);
+  var my=8, talking=this.talk&&live;
+  if(talking){var op=1.2+2.8*Math.abs(Math.sin(now/75));this.mo.setAttribute('cx',ox);this.mo.setAttribute('cy',my);this.mo.setAttribute('ry',op.toFixed(1));this.mo.setAttribute('opacity',1);this.mouth.setAttribute('opacity',0);}
+  else{
+    this.mo.setAttribute('opacity',0);this.mouth.setAttribute('opacity',1);
+    var md;
+    if(mouth==='smile')md='M'+(ox-5)+','+(my-1)+' Q'+ox+','+(my+4)+' '+(ox+5)+','+(my-1);
+    else if(mouth==='grin')md='M'+(ox-7)+','+(my-2)+' Q'+ox+','+(my+7)+' '+(ox+7)+','+(my-2);
+    else if(mouth==='frown')md='M'+(ox-5)+','+(my+2)+' Q'+ox+','+(my-3)+' '+(ox+5)+','+(my+2);
+    else if(mouth==='wob')md='M'+(ox-6)+','+my+' q3,-3 6,0 t6,0';
+    else md='M'+(ox-5)+','+my+' L'+(ox+5)+','+my;
+    this.mouth.setAttribute('d',md);
+  }
+  if(this.k!==1){var K=this.k,FL=this.floor;this.g.setAttribute('transform','translate('+fx.toFixed(1)+','+FL+') scale('+K.toFixed(3)+') translate('+(-fx).toFixed(1)+','+(-FL)+')');this.hx=fx+(this.hx-fx)*K;this.hy=FL+(this.hy-FL)*K;}else this.g.removeAttribute('transform');
+  /* sweat */
+  for(var k=0;k<3;k++){
+    var dr=this.drops[k];
+    if(!this.sweat){dr.setAttribute('opacity',0);continue;}
+    var t=live?((now/650+k/3)%1):(0.25+k*0.25);
+    var sx=this.hx-d*(12+t*24)+(k-1)*5, sy=this.hy-16-Math.sin(t*Math.PI)*16+t*14;
+    dr.setAttribute('transform','translate('+sx.toFixed(1)+','+sy.toFixed(1)+') scale('+(0.8+0.3*k/2)+')');
+    dr.setAttribute('opacity',(this.o*(1-t)*0.95).toFixed(2));
+  }
+};
+
+/* ---------- panel: a stage with figures, sprites, tweens and sound ---------- */
+function Panel(host,o){
+  this.o=o;this.gen=0;this.tw=[];this.sprites=[];this.figs=[];this.playing=[];this.timers=[];this.raf=0;this.active=false;this.instant=false;this.running=false;
+  this.W=o.w||560;this.H=o.h||320;this.floor=o.floor||FLOOR;
+  this.svg=el('svg',{viewBox:'0 0 '+this.W+' '+this.H,role:'img','aria-label':o.label||''},null);
+  host.appendChild(this.svg);
+  if(o.floorLine!==false)el('line',{x1:10,y1:this.floor,x2:this.W-10,y2:this.floor,stroke:'#2A3555','stroke-width':2},this.svg);
+  this.back=el('g',{},this.svg);
+  this.figLayer=el('g',{},this.svg);
+  if(o.cand){this.cand=new Fig(this.figLayer,o.cand.x,o.cand.c,this.floor);this.figs.push(this.cand);}
+  var self=this;
+  this.others=(o.others||[]).map(function(x){var f=new Fig(self.figLayer,x,PAPER,self.floor);f.dir=-1;self.figs.push(f);return f;});
+  this.layer=el('g',{},this.svg);
+  this.px0=150;this.px1=this.others.length?Math.min.apply(null,this.others.map(function(f){return f.x;}))-75:400;
+}
+Panel.prototype.drawAll=function(now){
+  var live=this.active&&!this.instant,i;
+  for(i=0;i<this.figs.length;i++)this.figs[i].draw(now,live);
+  for(i=0;i<this.sprites.length;i++){var t=this.sprites[i];
+    if(t.draw)t.draw(t,now);
+    t.g.setAttribute('transform','translate('+t.x.toFixed(1)+','+t.y.toFixed(1)+')'+(t.r?' rotate('+t.r.toFixed(1)+')':'')+(t.s!==1?' scale('+t.s.toFixed(3)+')':''));
+    t.g.setAttribute('opacity',Math.max(0,t.o).toFixed(2));
+  }
+};
+Panel.prototype.frame=function(now){
+  this.raf=0;
+  for(var i=this.tw.length-1;i>=0;i--){var w=this.tw[i],p=Math.min(1,(now-w.t0)/w.ms);w.obj[w.prop]=w.from+(w.to-w.from)*w.fn(p);if(p>=1){this.tw.splice(i,1);w.res();}}
+  this.drawAll(now);
+  if(this.tw.length||(this.active&&!this.instant&&this.running))this.kick();
+};
+Panel.prototype.kick=function(){var self=this;if(!this.raf)this.raf=requestAnimationFrame(function(t){self.frame(t);});};
+Panel.prototype.chk=function(g){if(g!==this.gen)throw CANCEL;};
+Panel.prototype.to=function(obj,prop,val,ms,fn){
+  var self=this,g=this.gen;
+  if(this.instant||ms<=0){obj[prop]=val;return Promise.resolve();}
+  return new Promise(function(res){self.tw.push({obj:obj,prop:prop,from:obj[prop],to:val,ms:ms,t0:performance.now(),res:res,fn:fn||easeIO});self.kick();}).then(function(){self.chk(g);});
+};
+Panel.prototype.wait=function(ms){
+  var self=this,g=this.gen;if(this.instant)return Promise.resolve();
+  return new Promise(function(r){self.timers.push(setTimeout(r,ms));}).then(function(){self.chk(g);});
+};
+Panel.prototype.all=function(){return Promise.all([].slice.call(arguments));};
+Panel.prototype.snd=function(id,o){
+  o=o||{};var self=this,g=this.gen;
+  if(this.instant)return Promise.resolve();
+  var rate=o.rate||1,d=(DUR[id.replace('.','_')]||1.2)/rate*1000,done,a=null;
+  var pr=new Promise(function(r){done=r;});
+  if(!MUTED){try{a=getAudio(id);a.currentTime=0;a.volume=o.vol==null?1:o.vol;a.playbackRate=rate;if('preservesPitch' in a)a.preservesPitch=!o.pitch;a.onended=done;var p=a.play();if(p&&p.catch)p.catch(noop);self.playing.push(a);}catch(e){}}
+  this.timers.push(setTimeout(done,d+(a?400:0)));
+  return pr.then(function(){self.chk(g);});
+};
+Panel.prototype.fx=function(id,o){this.snd(id,o).catch(noop);};
+Panel.prototype.sprite=function(g,x,y,o){var s={g:g,x:x,y:y,o:o==null?1:o,r:0,s:1};this.sprites.push(s);return s;};
+Panel.prototype.prop=function(build,x,y,o,back){var g=el('g',{},back?this.back:this.layer);build(g);return this.sprite(g,x,y,o);};
+Panel.prototype.tile=function(text,style,from){
+  var m=makeTile(this.layer,text,style);m.g.setAttribute('opacity',0);
+  var s=this.sprite(m.g,from.x,from.y,0);s.w=m.w;return s;
+};
+Panel.prototype.land=function(t,x,y,ms){return Promise.all([this.to(t,'o',1,ms*0.4),this.to(t,'x',x,ms),this.to(t,'y',y,ms,easeBack)]);};
+Panel.prototype.say=async function(fig,id,style,x,y,o){
+  var t=this.tile(LINES[id],style,{x:fig.hx,y:fig.hy});
+  if(typeof x==='function'){var p=x(t.w);x=p.x;y=p.y;}
+  fig.talk=1;
+  try{await Promise.all([this.land(t,x,y,(o&&o.ms)||420),this.snd(id,o)]);}finally{fig.talk=0;}
+  return t;
+};
+Panel.prototype.think=async function(fig,id,hold){
+  var text=LINES[id],g=el('g',{},this.layer),self=this;
+  var r=el('rect',{height:26,rx:13,fill:'#202A48',stroke:fig.head.getAttribute('fill'),'stroke-width':1.5,'stroke-dasharray':'4 3'},g);
+  var t=el('text',{x:12,y:17,fill:'#F4F0E8','class':'th'},g);t.textContent=text;
+  var w=Math.ceil(textW(t,text.length*6.4))+24;r.setAttribute('width',w);
+  var bx=Math.max(8,Math.min(this.W-w-8,fig.hx-w/2+10)),by=fig.hy-66;
+  el('circle',{cx:fig.hx-bx+2,cy:36,r:4,fill:'#202A48',stroke:fig.head.getAttribute('fill'),'stroke-width':1.2},g);
+  el('circle',{cx:fig.hx-bx,cy:46,r:2.5,fill:'#202A48',stroke:fig.head.getAttribute('fill'),'stroke-width':1.2},g);
+  var s=this.sprite(g,bx,by+8,0);
+  await this.all(this.to(s,'o',1,200),this.to(s,'y',by,250,easeOut),this.snd(id,{vol:.95}));
+  await this.wait(hold==null?450:hold);
+  await this.to(s,'o',0,250);
+  return s;
+};
+Panel.prototype.narr=async function(id){
+  if(!this.nr){
+    var g=el('g',{},this.layer);
+    el('rect',{x:10,y:6,width:this.W-20,height:30,rx:8,fill:'#0A0E1A',stroke:'#2A3555'},g);
+    var lab=el('text',{x:22,y:25,fill:'#8C97B3','class':'sm'},g);lab.textContent='Narrator';
+    this.nrT=el('text',{x:104,y:26,fill:'#F4F0E8','class':'nr'},g);
+    this.nr=this.sprite(g,0,0,0);
+  }
+  this.nrT.textContent=LINES[id];
+  this.nr.o=this.instant?1:.2;
+  await this.all(this.to(this.nr,'o',1,250),this.snd(id));
+};
+Panel.prototype.pause=async function(x,y,w,ms){
+  var g=el('g',{},this.layer),r=el('rect',{x:0,y:0,width:0,height:4,rx:2,fill:'#5A6688'},g);
+  var s=this.sprite(g,x,y,1);s.w=0;s.draw=function(t){r.setAttribute('width',Math.max(0,t.w).toFixed(1));};
+  await this.to(s,'w',w,ms,function(p){return p;});
+  return s;
+};
+Panel.prototype.shake=function(){if(this.instant)return;var s=this.svg;s.classList.remove('shake');void s.getBoundingClientRect();s.classList.add('shake');};
+Panel.prototype.pile=function(x0,first){
+  var row=0,cur=first==null?x0:first,x1=this.px1+10,y=this.floor-TH-1;
+  return function(w){if(cur+w>x1){row++;cur=x0+row*9+(row%2?7:0);}var p={x:cur,y:y-row*ROW};cur+=w+4;return p;};
+};
+Panel.prototype.extras=async function(fig,ids,place,hook){
+  var lean=0,cap=this.others.length>1?.2:.3,self=this;
+  for(var i=0;i<ids.length;i++){
+    await this.wait(110);
+    if(hook)await hook(i);
+    lean=Math.min(cap,lean+.05);
+    var m=[this.say(fig,ids[i],'pale',place,0,{rate:1+i*.045,pitch:1,ms:380})];
+    this.others.forEach(function(o){if(!o.fixed)m.push(self.to(o,'lean',lean,420));});
+    await Promise.all(m);
+  }
+};
+Panel.prototype.stop=function(){
+  this.gen++;
+  var old=this.tw;this.tw=[];for(var i=0;i<old.length;i++)old[i].res();
+  this.timers.forEach(clearTimeout);this.timers=[];
+  this.playing.forEach(function(a){try{a.onended=null;a.pause();}catch(e){}});this.playing=[];
+  this.running=false;
+};
+Panel.prototype.reset=function(){
+  this.stop();
+  for(var j=0;j<this.sprites.length;j++)this.sprites[j].g.remove();
+  this.sprites=[];this.nr=null;this.back.textContent='';
+  var self=this;
+  this.figs.forEach(function(f){f.dx=0;f.dy=0;f.lean=0;f.wob=0;f.sq=1;f.o=1;f.k=1;f.expr='calm';f.talk=0;f.sweat=0;f.look=0;f.lookY=0;f.fixed=0;f.dir=(f===self.cand)?1:-1;});
+  if(this.cand)this.cand.dx=-240;
+  this.svg.classList.remove('shake');this.svg.insertBefore(this.figLayer,this.layer);
+  this.drawAll(0);
+};
+Panel.prototype.run=async function(script,instant,keep){
+  if(!keep)this.reset();else this.stop();
+  this.instant=!!instant||REDUCED;this.running=true;this.active=true;
+  var g=this.gen,arg=[].slice.call(arguments,3);
+  if(!this.instant)this.kick();
+  try{await script.apply(null,[this].concat(arg));}
+  catch(e){if(e!==CANCEL){this.running=false;throw e;}return false;}
+  if(g===this.gen){this.running=false;this.drawAll(performance.now());}
+  return true;
+};
+
+/* ---------- scene scripts ---------- */
+var S={};
+S.interviewSilent=async function(p,need){
+  var c=p.cand,o=p.others[0];
+  if(need){
+    c.expr='panic';c.sweat=1;c.wob=1;p.fx('steps_fast',{vol:.8});
+    await p.all(p.to(c,'dx',38,560,easeOut),p.to(c,'lean',.55,620));
+    await p.to(c,'dx',0,300);
+    o.expr='side';o.look=-1;
+    await p.to(o,'lean',.27,850);
+  }else{
+    p.fx('steps_slow',{vol:.8});
+    await p.to(c,'dx',0,1800);
+    await p.wait(350);c.expr='happy';
+    await p.wait(250);o.expr='happy';
+    await p.to(o,'lean',-.2,850);
+  }
+};
+S.interview=async function(p,need){
+  var c=p.cand,o=p.others[0],y=p.floor-TH-1;
+  if(need){
+    c.expr='panic';c.sweat=1;c.wob=1;p.fx('steps_fast',{vol:.7});
+    await p.all(p.to(c,'dx',0,600),p.to(c,'lean',.5,750));
+    var req=await p.say(c,'iv.n0','req',p.px0,y);
+    o.expr='side';
+    await p.extras(c,['iv.n1','iv.n2','iv.n3','iv.n4','iv.n5','iv.n6'],p.pile(p.px0,p.px0+req.w+4),function(i){if(i===3)o.expr='bored';});
+    await p.to(req,'o',.55,500);
+    p.fx('crickets',{vol:.7});
+    await p.wait(1500);
+    o.lookY=1;p.fx('trombone',{vol:.6});
+    await p.wait(600);
+  }else{
+    p.fx('steps_slow',{vol:.7});
+    await p.to(c,'dx',0,1700);
+    await p.wait(400);
+    var r2=await p.say(c,'iv.e0','blue',p.px0,y);
+    c.expr='happy';
+    await p.pause(p.px0+r2.w+10,p.floor-13,56,1400);
+    o.expr='happy';
+    await p.to(o,'lean',-.2,700);
+    await p.say(o,'iv.r','paper',function(w){return {x:Math.max(p.px0+24,p.px1-w+30),y:y-ROW-10};});
+    p.fx('win',{vol:.5});
+  }
+};
+function phoneFlat(g){el('rect',{x:-12,y:-7,width:24,height:7,rx:2,fill:'#C9D2EA'},g);el('rect',{x:-9,y:-6,width:18,height:2,rx:1,fill:'#7F97FF'},g);}
+function phoneHand(g){el('rect',{x:-5,y:-9,width:10,height:18,rx:2.5,fill:'#C9D2EA'},g);el('rect',{x:-3.5,y:-7,width:7,height:11,rx:1,fill:'#7F97FF'},g);}
+S.text=async function(p,need){
+  var c=p.cand,f=p.others[0],ty=p.floor-46;
+  p.prop(function(g){el('rect',{x:0,y:0,width:78,height:5,rx:2,fill:'#3A476E'},g);el('rect',{x:8,y:5,width:4,height:41,fill:'#2A3555'},g);el('rect',{x:66,y:5,width:4,height:41,fill:'#2A3555'},g);},368,ty);
+  var ph=p.prop(phoneFlat,388,ty);
+  f.lookY=0;
+  await p.to(c,'dx',0,need?650:1100);
+  var hp=p.prop(phoneHand,c.hx+27,c.hy+4,0);
+  await p.to(hp,'o',1,200);
+  var row=0,x0=150,y0=38;
+  async function buzz(move){
+    p.fx('buzz',{vol:.8});
+    var a=[];for(var k=0;k<3;k++){a.push(p.to(ph,'r',k%2?-9:9,60));}
+    await p.to(ph,'r',9,55);await p.to(ph,'r',-9,55);await p.to(ph,'r',7,55);await p.to(ph,'r',0,55);
+    if(move)await p.to(ph,'x',ph.x+move,120);
+  }
+  async function send(id,style,rate,move){
+    p.fx('whoosh',{vol:.5});
+    var y=y0+row*26;row++;
+    c.talk=1;var t=p.tile(LINES[id],style,{x:hp.x,y:hp.y});
+    try{await p.all(p.land(t,x0,y,300),p.snd(id,{rate:rate,pitch:1}));}finally{c.talk=0;}
+    await buzz(move);
+    return t;
+  }
+  if(need){
+    c.expr='calm';
+    await send('tx.n0','req',1,3);
+    await p.wait(900);
+    c.expr='panic';c.wob=1;
+    await p.think(c,'tx.t1',200);
+    c.sweat=1;
+    var ids=['tx.n1','tx.n2','tx.n3','tx.n4','tx.n5','tx.n6'];
+    for(var i=0;i<ids.length;i++){
+      await send(ids[i],'pale',1+i*.05,10);
+      if(i===1){f.expr='side';f.lookY=1;}
+      if(i===3)f.expr='bored';
+    }
+    p.fx('crash',{vol:.9});
+    await p.all(p.to(ph,'x',464,260),p.to(ph,'y',p.floor-2,420,easeIn),p.to(ph,'r',160,420));
+    p.shake();
+    f.lookY=1;f.look=-1;
+    await p.wait(700);
+    f.lookY=0;f.expr='side';
+    await p.wait(500);
+    c.expr='happy';c.wob=0;c.sweat=0;
+    await p.think(c,'tx.t2',500);
+  }else{
+    var t=await send('tx.e0','blue',1,0);
+    await p.wait(400);
+    await p.think(c,'tx.t3',150);
+    c.expr='happy';
+    await p.to(hp,'o',0,250);
+    c.dir=-1;p.fx('whistle',{vol:.5});
+    await p.all(p.to(c,'dx',-34,1300),p.pause(x0+t.w+10,y0+9,56,1900));
+    f.expr='happy';
+    p.fx('ding',{vol:.7});
+    await p.wait(350);
+    c.dir=1;
+    await p.all(p.to(c,'dx',0,500),p.say(f,'tx.r','paper',function(w){return {x:Math.max(x0+30,350-w),y:y0+34};}));
+    p.fx('win',{vol:.45});
+  }
+};
+function cloud(g){
+  el('ellipse',{cx:0,cy:0,rx:26,ry:11,fill:'#56607C'},g);el('ellipse',{cx:-14,cy:-7,rx:13,ry:10,fill:'#56607C'},g);el('ellipse',{cx:8,cy:-10,rx:15,ry:12,fill:'#56607C'},g);
+  [-16,-6,4,14].forEach(function(x,i){el('line',{x1:x,y1:12,x2:x-4,y2:30+(i%2)*6,stroke:'#9FD4FF','stroke-width':2,'stroke-linecap':'round','stroke-dasharray':'5 7','class':'rain'},g);});
+}
+S.leftout=async function(p,need){
+  var c=p.cand,a=p.others[0],b=p.others[1],y=p.floor-TH-1;
+  a.dir=1;a.look=1;b.look=-1;a.expr='happy';b.expr='happy';
+  if(need){
+    c.expr='sad';
+    await p.all(p.to(c,'dx',0,1100),p.to(c,'lean',.22,1100));
+    a.dir=-1;a.look=-1;a.expr='calm';b.expr='calm';
+    var req=await p.say(c,'lo.n0','req',p.px0,y);
+    var cl=null;
+    await p.extras(c,['lo.n1','lo.n2','lo.n3','lo.n4','lo.n5'],p.pile(p.px0,p.px0+req.w+4),async function(i){
+      if(i===1){cl=p.prop(cloud,c.hx+4,c.hy-70,0);p.to(cl,'o',1,500).catch(noop);p.to(cl,'y',c.hy-50,600,easeOut).catch(noop);p.fx('violin',{vol:.5});}
+      if(i===2){a.dir=1;a.look=1;b.look=-1;a.expr='side';b.expr='side';}
+      if(i===3){a.dir=-1;a.look=-1;}
+      if(i===4){a.expr='bored';b.expr='bored';c.lean=.3;}
+    });
+    await p.to(req,'o',.55,400);
+    p.fx('trombone',{vol:.7});
+    await p.all(p.to(c,'lean',.42,900),p.to(c,'sq',.86,900));
+  }else{
+    p.fx('steps_slow',{vol:.6});
+    await p.to(c,'dx',0,1400);
+    a.dir=-1;a.look=-1;a.expr='calm';b.expr='calm';
+    c.expr='happy';
+    var r=await p.say(c,'lo.e0','blue',p.px0,y);
+    await p.pause(p.px0+r.w+8,p.floor-13,30,900);
+    a.expr='happy';
+    await p.all(p.to(a,'lean',-.18,500),p.say(a,'lo.r','paper',function(w){return {x:p.px1-w+40,y:y-ROW-8};}));
+    b.expr='happy';
+    await p.all(p.to(b,'lean',-.16,400),p.say(b,'lo.r2','paper',function(w){return {x:p.px1-w+70,y:y-ROW*2-12};}));
+    p.fx('win',{vol:.5});
+  }
+};
+function watch(g){
+  el('line',{x1:0,y1:0,x2:-22,y2:-16,stroke:PAPER,'stroke-width':7,'stroke-linecap':'round'},g);
+  el('circle',{cx:-24,cy:-18,r:7,fill:'#0E1322',stroke:'#FFD25E','stroke-width':2.5},g);
+  el('path',{d:'M-24,-22 V-18 H-21',fill:'none',stroke:'#FFD25E','stroke-width':1.6,'stroke-linecap':'round'},g);
+}
+S.boss=async function(p,need){
+  var c=p.cand,o=p.others[0],y=p.floor-TH-1;
+  o.fixed=1;
+  await p.to(c,'dx',0,need?500:900);
+  await p.say(o,'bs.p','paper',function(w){return {x:(p.px0+p.px1)/2-w/2+50,y:44};});
+  await p.wait(need?200:500);
+  if(need){
+    c.expr='panic';c.wob=1;c.sweat=1;
+    await p.say(c,'bs.n0','req',p.px0,y);
+    var ids=['bs.n1','bs.n2','bs.n3','bs.n4','bs.n5','bs.n6'],jx=[-10,8,-4,10,-8,2],jr=[-4,3,-2,4,-3,2],w=null;
+    for(var i=0;i<ids.length;i++){
+      await p.wait(90);
+      var t=p.tile(LINES[ids[i]],'pale',{x:c.hx,y:c.hy});
+      var tx=Math.max(6,c.x-t.w/2+jx[i]),ty=y-i*23;
+      c.talk=1;
+      var voice=p.snd(ids[i],{rate:1+i*.05,pitch:1,vol:i>=4?.75:1});voice.catch(noop);
+      await p.all(p.to(t,'o',1,120),p.to(t,'x',tx,420),p.to(t,'y',c.hy-64,200,easeOut));
+      await p.all(p.to(t,'y',ty,230,easeIn),p.to(t,'r',jr[i],230));
+      p.fx('thud',{vol:.8});p.shake();
+      await p.all(p.to(c,'sq',1-(i+1)*.075,150),p.to(c,'lean',.1,150));
+      c.talk=0;
+      if(i===2){o.expr='bored';o.look=-1;o.lookY=1;w=p.prop(watch,o.x-8,p.floor-70,0);p.to(w,'o',1,200).catch(noop);p.fx('tick',{vol:.7});}
+      await voice;
+    }
+    c.wob=0;
+    await p.wait(500);
+    p.fx('crickets',{vol:.6});
+    o.lookY=0;o.expr='side';
+    await p.wait(1400);
+  }else{
+    c.expr='calm';
+    var r=await p.say(c,'bs.e0','blue',p.px0,y);
+    p.fx('crickets',{vol:.55});
+    var bar=p.pause(p.px0+r.w+10,p.floor-13,64,3600);bar.catch(noop);
+    await p.wait(700);
+    await p.think(c,'bs.t1',200);
+    await bar;
+    o.expr='happy';
+    await p.all(p.to(o,'lean',-.2,600),p.say(o,'bs.r','paper',function(w2){return {x:Math.max(p.px0+24,p.px1-w2+30),y:y-ROW-10};}));
+    c.expr='happy';p.fx('win',{vol:.5});
+  }
+};
+S.party=async function(p,need){
+  var c=p.cand,g=p.others,y=p.floor-TH-1,i;
+  g[0].dir=1;g[0].look=1;g[2].look=-1;g.forEach(function(f){f.expr='happy';});
+  function eyes(v){g.forEach(function(f){f.dir=v<0?-1:1;f.look=v;});}
+  if(need){
+    c.expr='panic';c.wob=1;
+    await p.all(p.narr('pt.x1'),p.to(c,'dx',0,1400));
+    p.fx('tiptoe',{vol:.55});
+    var nx=p.narr('pt.x2');nx.catch(noop);
+    await p.to(c,'dx',440,1000);c.dir=-1;eyes(1);
+    await p.to(c,'dx',0,950);c.dir=1;eyes(-1);
+    await p.to(c,'dx',440,700);c.dir=-1;eyes(1);
+    await p.to(c,'dx',0,700);c.dir=1;eyes(-1);
+    await nx;
+    g.forEach(function(f){f.expr='calm';});
+    c.sweat=1;
+    var req=await p.say(c,'pt.n0','req',p.px0,y),place=p.pile(p.px0,p.px0+req.w+4),lean=0;
+    async function ex(ids,start){
+      for(var k=0;k<ids.length;k++){
+        lean+=.045;var m=[p.say(c,ids[k],'pale',place,0,{rate:1+(start+k)*.04,pitch:1,ms:380})];
+        g.forEach(function(f){m.push(p.to(f,'lean',lean,400));});
+        await Promise.all(m);await p.wait(100);
+      }
+    }
+    await ex(['pt.n1'],0);
+    g.forEach(function(f){f.expr='side';});
+    await p.narr('pt.x3');
+    await ex(['pt.n2','pt.n3','pt.n4','pt.n5'],1);
+    g.forEach(function(f){f.expr='bored';f.dir=1;f.look=1;});
+    await p.all(p.narr('pt.x4'),p.to(g[0],'dx',16,900),p.to(g[1],'dx',10,900),p.to(g[2],'dx',6,900),p.to(req,'o',.55,700),p.to(c,'lean',.25,900));
+    c.expr='sad';c.sweat=0;c.wob=0;
+    p.fx('trombone',{vol:.6});
+    await p.wait(500);
+  }else{
+    p.fx('steps_slow',{vol:.6});
+    await p.all(p.narr('pt.x5'),p.to(c,'dx',0,1700));
+    eyes(-1);g.forEach(function(f){f.expr='calm';});
+    c.expr='happy';
+    var r=await p.say(c,'pt.e0','blue',p.px0,y);
+    await p.pause(p.px0+2,p.floor-13-ROW,40,1100);
+    g.forEach(function(f){f.expr='happy';});
+    var m=[p.say(g[0],'pt.r','paper',function(w){return {x:p.px1-w+40,y:y-ROW-12};})];
+    g.forEach(function(f,k){m.push(p.to(f,'lean',-.16,600));m.push(p.to(f,'dx',10+k*4,600));});
+    await Promise.all(m);
+    await p.all(p.to(c,'dx',118,900),p.to(r,'o',.9,300));
+    p.fx('win',{vol:.5});
+    await p.narr('pt.x6');
+  }
+};
+S.no=async function(p,need){
+  var c=p.cand,o=p.others[0],y=p.floor-TH-1;
+  o.fixed=1;
+  p.prop(function(g){el('rect',{x:0,y:0,width:34,height:124,rx:3,fill:'none',stroke:'#3A476E','stroke-width':3},g);},512,p.floor-124,1,true);
+  var door=p.prop(function(g){el('rect',{x:0,y:0,width:34,height:124,rx:3,fill:'#3A476E'},g);el('circle',{cx:7,cy:66,r:3,fill:'#FFD25E'},g);},512,p.floor-124,0);
+  await p.to(c,'dx',0,need?600:1000);
+  var prm=await p.say(o,'no.p','paper',function(w){return {x:(p.px0+p.px1)/2-w/2+40,y:44};});
+  await p.wait(need?200:600);
+  if(need){
+    c.expr='panic';c.wob=1;p.svg.appendChild(p.figLayer);
+    var req=await p.say(c,'no.n0','req',p.px0,y),place=p.pile(p.px0,p.px0+req.w+4);
+    o.expr='side';
+    var ids=['no.n1','no.n2','no.n3','no.n4','no.n5'];
+    for(var i=0;i<ids.length;i++){
+      await p.wait(100);
+      if(i===1){c.sweat=1;}
+      if(i===2){o.dir=1;o.look=1;}
+      var m=[p.say(c,ids[i],'pale',place,0,{rate:1+i*.05,pitch:1,ms:380}),p.to(c,'dx',(i+1)*13,450),p.to(c,'lean',.45+i*.05,450),p.to(o,'dx',(i+1)*(i>1?15:8),450)];
+      if(i===4){m.push(p.to(o,'o',0,450));}
+      await Promise.all(m);
+    }
+    door.o=1;p.fx('door',{vol:.9});p.shake();
+    await p.wait(700);
+    c.talk=1;
+    var last=p.tile(LINES['no.n6'],'pale',{x:c.hx,y:c.hy}),voice=p.snd('no.n6',{vol:.9});voice.catch(noop);
+    await p.all(p.to(last,'o',1,120),p.to(last,'x',512-last.w,380),p.to(last,'y',p.floor-90,380));
+    p.fx('boing',{vol:.7});
+    await p.all(p.to(last,'x',400-last.w/2,520,easeOut),p.to(last,'y',y-ROW*2,520,easeIn),p.to(last,'r',-14,520));
+    c.talk=0;await voice;
+    c.expr='sad';c.wob=0;
+    p.fx('crickets',{vol:.6});
+    await p.wait(1300);
+  }else{
+    c.expr='calm';
+    var r=await p.say(c,'no.e0','blue',p.px0,y);
+    await p.pause(p.px0+2,p.floor-13-ROW,50,1300);
+    o.expr='calm';
+    var r1=await p.all(p.to(o,'lean',-.12,600),p.say(o,'no.r','paper',function(w){return {x:Math.max(p.px0+24,p.px1-w+30),y:y-ROW-12};}));
+    c.expr='happy';
+    var t1=await p.say(c,'no.e1','blue',p.px0+20,y-ROW*2-24);
+    c.dir=-1;p.fx('steps_slow',{vol:.5});
+    await p.all(p.to(c,'dx',-240,1500),p.to(o,'lean',0,600));
+    /* time passes */
+    p.fx('skip',{vol:.6});
+    var fade=p.sprites.filter(function(q){return q.w&&q.o>0;}).map(function(q){return p.to(q,'o',0,500);});
+    await Promise.all(fade);
+    var card=p.tile('3 months later','pale',{x:0,y:44});card.x=(p.W-card.w)/2;
+    await p.to(card,'o',1,400);
+    await p.wait(700);
+    c.dir=1;p.fx('steps_slow',{vol:.5});
+    await p.to(c,'dx',0,1300);
+    await p.say(c,'no.e2','blue',p.px0,y);
+    await p.wait(350);
+    o.expr='happy';
+    var glow=p.prop(function(g){el('rect',{x:3,y:3,width:28,height:118,rx:2,fill:'#FFD25E'},g);},512,p.floor-124,0,true);
+    p.fx('open',{vol:.6});
+    await p.all(p.to(glow,'o',.9,700),p.to(o,'lean',-.2,600),p.say(o,'no.r2','paper',function(w){return {x:Math.max(p.px0+24,p.px1-w+30),y:y-ROW-12};}));
+    p.fx('win',{vol:.55});
+  }
+};
+var SC={
+  interviewSilent:{silent:true,labels:['Candidate A','Candidate B'],others:[470],need:{aria:'Rushes in bent forward, wobbling and sweating; the interviewer leans away.'},ease:{aria:'Walks in upright and unhurried; the interviewer leans in.'}},
+  interview:{others:[470],need:{cap:'Rushes in, apologizes and explains. The request ends up under the pile.'},ease:{cap:'Arrives, says it and stops. The interviewer does the leaning.'}},
+  text:{others:[500],need:{cap:'Each extra message adds pressure and buries the invitation.'},ease:{cap:"One message, then on with your day. The answer isn't always yes, and that's fine."}},
+  leftout:{others:[436,492],need:{cap:'Fishing for an invitation shows how much you depend on this one plan.'},ease:{cap:'Make the plan and let people join it.'}},
+  boss:{others:[470],need:{cap:'The weak reasons pile on and bury the one strong reason at the bottom.'},ease:{cap:'One strong reason at full strength, then stop.'}},
+  party:{others:[392,436,480],need:{cap:'Tense and performing. The group catches it and closes up.'},ease:{cap:'Curious about them, and fine either way.'}},
+  no:{others:[440],need:{cap:'Arguing with the decision makes them defend it.'},ease:{cap:"The door stays open, and you know exactly what opens it. They can change their answer without losing face."}}
+};
+function sceneIds(name){var pre={interview:'iv.',text:'tx.',leftout:'lo.',boss:'bs.',party:'pt.',no:'no.'}[name];var ids=Object.keys(LINES).filter(function(k){return pre&&k.indexOf(pre)===0;});return ids.concat(['steps_fast','steps_slow','whoosh','buzz','crash','crickets','violin','tick','door','boing','ding','thud','win','whistle','tiptoe','trombone']);}
+
+/* ---------- scene component: two panels, played one at a time ---------- */
+function Scene(host,name){
+  var cfg=SC[name],self=this;this.name=name;this.script=S[name];this.n=2;
+  var labels=cfg.labels||['When need takes over','What works'];
+  var panels=document.createElement('div');panels.className='panels';host.appendChild(panels);
+  function make(kind,label,dot){
+    var el2=document.createElement('div');el2.className='panel';
+    var l=document.createElement('div');l.className='plabel';
+    var d=document.createElement('span');d.className='dot '+(cfg.silent?'k':dot);l.appendChild(d);l.appendChild(document.createTextNode(label));
+    el2.appendChild(l);
+    var v=cfg[kind],pan=new Panel(el2,{label:label+'. '+(v.aria||v.cap),cand:{x:90,c:cfg.silent?GREY:(kind==='need'?NEED:EASE)},others:cfg.others});
+    if(v.cap){var c=document.createElement('p');c.className='pcap';c.textContent=v.cap;el2.appendChild(c);}
+    panels.appendChild(el2);return {el:el2,pan:pan,need:kind==='need'};
+  }
+  this.a=make('need',labels[0],'n');this.b=make('ease',labels[1],'e');
+}
+Scene.prototype.play=function(x,instant){
+  var s=this;x.el.classList.remove('dim');if(instant)x.el.classList.add('played');
+  return x.pan.run(this.script,instant,false,x.need).then(function(ok){if(ok)x.el.classList.add('played');});
+};
+Scene.prototype.clear=function(x){x.pan.reset();x.pan.active=false;x.el.classList.add('dim');x.el.classList.remove('played');};
+Scene.prototype.stop=function(){this.a.pan.stop();this.b.pan.stop();};
+Scene.prototype.prep=function(){this.clear(this.a);this.clear(this.b);this.a.el.classList.remove('dim');};
+Scene.prototype.rest=function(){this.play(this.a,true);this.play(this.b,true);};
+Scene.prototype.do=function(k){
+  preload(sceneIds(this.name));
+  if(k===0){this.clear(this.b);this.play(this.a,false);}
+  else{if(this.a.pan.running||!this.a.el.classList.contains('played'))this.play(this.a,true);this.play(this.b,false);}
+};
+Scene.prototype.undo=function(k){if(k===0)this.prep();else{this.clear(this.b);if(this.a.pan.running)this.play(this.a,true);}};
+
+/* ---------- the rating experiment ---------- */
+var PROFS=[{c:'#7F97FF',lean:.04,ex:'happy',s:[8,9,8],st:8},{c:'#C9A0FF',lean:.3,ex:'bored',s:[3,4,3],st:3},{c:'#6FD3B5',lean:-.05,ex:'happy',s:[9,9,10],st:9},{c:'#FF9A3C',lean:.45,ex:'panic',s:[4,3,4],st:4},{c:'#F3C86B',lean:.1,ex:'calm',s:[7,6,7],st:7},{c:'#FF8FA8',lean:.24,ex:'flat',s:[5,5,4],st:5},{c:'#8FD0FF',lean:0,ex:'happy',s:[8,8,9],st:9},{c:'#B9C2D8',lean:.36,ex:'sad',s:[2,3,3],st:2}];
+function cellColor(v){var a=(0.18+v*0.082).toFixed(2);return 'rgba(127,151,255,'+a+')';}
+function rateSetup(p){
+  if(p.R)return p.R;
+  var R=p.R={},L=p.back0=el('g',{},p.svg);p.svg.insertBefore(L,p.figLayer);
+  el('rect',{x:30,y:14,width:300,height:206,rx:14,fill:'#0A0E1A',stroke:'#2A3555','stroke-width':2},L);
+  el('rect',{x:170,y:220,width:20,height:22,fill:'#2A3555'},L);el('rect',{x:130,y:240,width:100,height:6,rx:3,fill:'#2A3555'},L);
+  R.flash=el('rect',{x:32,y:16,width:296,height:202,rx:12,fill:'#F4F0E8',opacity:0},L);
+  var mu=el('g',{transform:'translate(292,40)'},L);R.mu=mu;
+  el('path',{d:'M-12,-5 h7 l8,-7 v24 l-8,-7 h-7z',fill:'#8C97B3'},mu);el('path',{d:'M8,-6 l11,12 M19,-6 l-11,12',stroke:'#FF9A3C','stroke-width':3,'stroke-linecap':'round'},mu);
+  R.cap=el('text',{x:44,y:40,fill:'#8C97B3','class':'sm'},L);
+  R.tb=el('rect',{x:30,y:256,width:300,height:6,rx:3,fill:'#7F97FF'},L);
+  R.tl=el('text',{x:30,y:282,fill:'#A9B2C8','class':'sm'},L);
+  el('line',{x1:380,y1:p.floor,x2:700,y2:p.floor,stroke:'#2A3555','stroke-width':2},L);
+  var t1=el('text',{x:740,y:44,fill:'#F4F0E8','class':'sm'},L);t1.textContent='Strangers · 10 silent seconds';R.t1=t1;
+  var t2=el('text',{x:740,y:164,fill:'#F4F0E8','class':'sm'},L);t2.textContent='Students · a whole semester';R.t2=t2;
+  R.c1=[];R.c2=[];R.eq=[];
+  for(var i=0;i<8;i++){
+    [[R.c1,56],[R.c2,176]].forEach(function(q){
+      var g=el('g',{transform:'translate('+(740+i*44)+','+q[1]+')'},L);
+      var r=el('rect',{width:38,height:44,rx:8,fill:'none',stroke:'#2A3555','stroke-width':1.5},g);
+      var t=el('text',{x:19,y:29,'text-anchor':'middle',fill:'#fff','class':'num2'},g);
+      q[0].push({r:r,t:t,g:g});
+    });
+    var e=el('text',{x:759+i*44,y:134,'text-anchor':'middle',fill:'#7F97FF','class':'num2',opacity:0},L);e.textContent='≈';R.eq.push(e);
+  }
+  R.verdict=el('text',{x:740,y:262,fill:'#CDD6FF','class':'num2',opacity:0},L);R.verdict.textContent='Nearly the same ranking.';
+  R.prof=new Fig(L,180,'#7F97FF',204);R.prof.o=0;
+  R.raters=p.others;
+  p.figs.push(R.prof);
+  return R;
+}
+function rateClear(p){
+  var R=rateSetup(p);
+  R.c1.concat(R.c2).forEach(function(c){c.t.textContent='';c.r.setAttribute('fill','none');});
+  R.eq.forEach(function(e){e.setAttribute('opacity',0);});R.verdict.setAttribute('opacity',0);
+  R.cap.textContent='';R.tl.textContent='Silent clip';R.tb.setAttribute('width',300);R.flash.setAttribute('opacity',0);
+  R.prof.o=0;R.prof.lean=0;R.prof.sweat=0;R.bigface&&R.bigface.remove();R.bigface=null;p.drawAll(0);
+}
+function setCell(c,v){c.t.textContent=v;c.r.setAttribute('fill',cellColor(v));}
+S.rate1=async function(p){
+  var R=rateSetup(p);rateClear(p);
+  var tbo={w:300};
+  var bar=p.sprite(el('g',{},p.layer),0,0,1);bar.draw=function(){R.tb.setAttribute('width',Math.max(0,tbo.w).toFixed(0));};
+  R.raters.forEach(function(f){f.expr='calm';f.look=-1;});
+  var times=[1500,1100,650,450,330,280,260,260];
+  for(var i=0;i<PROFS.length;i++){
+    var q=PROFS[i],pr=R.prof;
+    pr.dir=1;pr.color(q.c);pr.expr=q.ex;pr.lean=q.lean;pr.sweat=q.ex==='panic'?1:0;pr.wob=q.ex==='happy'||q.ex==='panic'?1:0;pr.o=1;pr.dx=0;
+    R.cap.textContent='Teacher '+(i+1)+' of 8';
+    p.fx('click',{vol:.7});
+    tbo.w=300;
+    await p.to(tbo,'w',0,times[i],function(x){return x;});
+    var pads=[];
+    for(var k=0;k<3;k++){
+      var f=R.raters[k],t=p.tile(String(q.s[k]),'paper',{x:f.hx-12,y:f.hy-20});
+      p.fx('thunk',{vol:.6,rate:.9+k*.12,pitch:1});
+      pads.push(t);
+      await p.all(p.to(t,'o',1,60),p.to(t,'y',f.hy-56,130,easeBack));
+    }
+    setCell(R.c1[i],Math.round((q.s[0]+q.s[1]+q.s[2])/3));
+    await p.wait(i<2?500:120);
+    pads.forEach(function(t){t.o=0;});
+  }
+  R.prof.o=0;R.cap.textContent='';tbo.w=0;R.tl.textContent='8 teachers, rated in seconds';
+  await p.wait(500);
+  for(var j=0;j<8;j++){setCell(R.c2[j],PROFS[j].st);R.eq[j].setAttribute('opacity',1);p.fx('thunk',{vol:.35,rate:1.5,pitch:1});await p.wait(110);}
+  await p.wait(250);
+  R.verdict.setAttribute('opacity',1);p.fx('ding',{vol:.7});
+  R.raters.forEach(function(f){f.expr='happy';});
+};
+var FACES=[['happy','#6FD3B5','✓'],['side','#C9A0FF','✗'],['calm','#F3C86B','✓'],['bored','#FF8FA8','✗'],['happy','#8FD0FF','✓'],['panic','#FF9A3C','✗']];
+function facesMode(p){
+  var R=p.R;
+  R.t1.textContent='A tenth of a second';R.t2.textContent='As long as they liked';R.verdict.textContent='Same verdicts. Just more certain.';
+  [R.c1,R.c2].forEach(function(row){row.forEach(function(c,k){c.g.setAttribute('opacity',k<6?1:0);});});
+  R.tl.textContent='One face · a tenth of a second';R.cap.textContent='';R.tb.setAttribute('width',0);R.mu.setAttribute('opacity',0);
+}
+S.rateFaces=async function(p){
+  var R=rateSetup(p);rateClear(p);
+  facesMode(p);
+  R.raters.forEach(function(f){f.expr='calm';f.look=-1;});
+  var g=el('g',{transform:'translate(180,117)'},p.back0);R.bigface=g;
+  var head=el('circle',{r:66,fill:'#7F97FF'},g),fc=el('g',{},g);
+  function draw(ex,c){
+    head.setAttribute('fill',c);fc.textContent='';
+    var ry=ex==='bored'?4:ex==='side'?6:11,wide=ex==='panic';
+    [-22,22].forEach(function(x){if(wide)el('circle',{cx:x,cy:-12,r:17,fill:'#fff'},fc);el('ellipse',{cx:x+(ex==='side'?6:0),cy:-12,rx:wide?6:8,ry:wide?6:ry,fill:INK},fc);});
+    var d=ex==='happy'?'M-24,18 Q0,44 24,18':ex==='calm'?'M-16,22 Q0,32 16,22':ex==='panic'?'M-20,26 q10,-10 20,0 t20,0':'M-16,26 L16,26';
+    el('path',{d:d,fill:'none',stroke:INK,'stroke-width':6,'stroke-linecap':'round'},fc);
+  }
+  function mark(c,m){c.t.textContent=m;c.r.setAttribute('fill',m==='✓'?'rgba(127,151,255,.75)':'rgba(255,154,60,.7)');}
+  g.setAttribute('opacity',0);
+  await p.wait(500);
+  for(var i=0;i<FACES.length;i++){
+    var q=FACES[i];draw(q[0],q[1]);
+    p.fx('click',{vol:.6,rate:1.4,pitch:1});
+    g.setAttribute('opacity',1);
+    await p.wait(110);
+    if(!p.instant)g.setAttribute('opacity',0);
+    var pads=[];
+    R.raters.forEach(function(f){var t=p.tile(q[2],q[2]==='✓'?'blue':'req',{x:f.hx-12,y:f.hy-20});t.o=1;t.y=f.hy-56;pads.push(t);});
+    p.fx('thunk',{vol:.6,rate:1.2,pitch:1});
+    mark(R.c1[i],q[2]);
+    await p.wait(i<2?620:300);
+    pads.forEach(function(t){t.o=0;});
+  }
+  g.setAttribute('opacity',0);R.tl.textContent='Then they looked for as long as they liked';
+  await p.wait(700);
+  for(var j=0;j<FACES.length;j++){mark(R.c2[j],FACES[j][2]);R.eq[j].textContent='=';R.eq[j].setAttribute('opacity',1);p.fx('thunk',{vol:.35,rate:1.5,pitch:1});await p.wait(130);}
+  await p.wait(250);
+  R.verdict.setAttribute('opacity',1);p.fx('ding',{vol:.7});
+  R.raters.forEach(function(f){f.expr='happy';});
+};
+function Rate(host,mode){
+  this.n=1;this.faces=mode==='faces';this.script=mode==='faces'?S.rateFaces:S.rate1;
+  this.pan=new Panel(host,{w:1120,h:292,floor:262,floorLine:false,others:[440,540,640],label:mode==='faces'?'Faces flash on a screen for a tenth of a second and three raters judge each one instantly. Given unlimited time, their verdicts stay the same.':'Three raters watch silent ten-second clips of eight teachers in quick succession and hold up scores. Their scores nearly match the ratings students gave after a whole semester.'});
+  rateSetup(this.pan);
+}
+Rate.prototype.stop=function(){this.pan.stop();};
+Rate.prototype.prep=function(){this.pan.reset();rateClear(this.pan);if(this.faces)facesMode(this.pan);this.pan.active=false;};
+Rate.prototype.rest=function(){this.pan.run(this.script,true);};
+Rate.prototype.do=function(){preload(['click','thunk','ding']);this.pan.run(this.script,false);};
+Rate.prototype.undo=function(){this.prep();};
+
+/* ---------- tunnel vision ---------- */
+var TUN_R=[420,190,128,104],TUN_CH=[.45,.28,.1,.02],TUN_HB=[0,.25,.55,.95];
+S.tunnel=async function(p,from,to,delay){
+  var c=p.cand,fr=p.others,cx=250,cy=318;
+  c.dx=0;c.dir=1;c.look=0;
+  fr[0].dir=1;fr[0].look=1;fr[1].dir=1;fr[1].look=1;fr[2].dir=-1;fr[3].dir=-1;
+  fr.forEach(function(f){f.expr='happy';f.wob=1;f.talk=1;});fr[0].talk=0;fr[3].talk=0;
+  var tl=[["ha ha ha!",'paper',22,296],["remember when…",'paper',40,250],["so what do you think?",'paper',322,292],["a good idea",'blue',372,170],["the joke",'blue',44,150],["her name",'blue',214,96]];
+  tl.forEach(function(q){var t=p.tile(q[0],q[1],{x:q[2],y:q[3]});t.o=1;t.by=q[3];t.ph=q[2];t.draw=function(o,now){if(!p.instant)o.y=o.by+Math.sin(now/700+o.ph)*4;};});
+  /* his own thoughts: the only thing left in the light */
+  var th=["do they like me?","what do I say?","don't mess this up"].map(function(text,k){
+    var g=el('g',{},p.layer),r=el('rect',{height:26,rx:13,fill:'#202A48',stroke:NEED,'stroke-width':1.5,'stroke-dasharray':'4 3'},g);
+    var t=el('text',{x:12,y:17,fill:'#F4F0E8','class':'th'},g);t.textContent=text;
+    var w=Math.ceil(textW(t,text.length*6.4))+24;r.setAttribute('width',w);
+    return p.sprite(g,cx-w/2+[0,-10,8][k],318-k*31,k<from?1:0);
+  });
+  var dots=p.prop(function(g){el('circle',{cx:0,cy:0,r:4,fill:'#202A48',stroke:NEED,'stroke-width':1.2},g);el('circle',{cx:-2,cy:9,r:2.5,fill:'#202A48',stroke:NEED,'stroke-width':1.2},g);},cx+2,350,from>0?1:0);
+  /* darkness with a hole */
+  var id='tm'+(++S.tunnel.n),g=el('g',{},p.layer);
+  var defs=el('defs',{},g),rg=el('radialGradient',{id:id+'g'},defs);
+  el('stop',{offset:'0','stop-color':'#000'},rg);el('stop',{offset:'.66','stop-color':'#000'},rg);el('stop',{offset:'1','stop-color':'#fff'},rg);
+  var m=el('mask',{id:id,maskUnits:'userSpaceOnUse',x:0,y:0,width:500,height:580},defs);
+  el('rect',{width:500,height:580,fill:'#fff'},m);
+  var hole=el('circle',{cx:cx,cy:cy,fill:'url(#'+id+'g)'},m);
+  el('rect',{width:500,height:580,fill:'#04060C',opacity:.96,mask:'url(#'+id+')'},g);
+  var d=p.sprite(g,0,0,1);d.R=TUN_R[from];d.draw=function(o){hole.setAttribute('r',Math.max(1,o.R).toFixed(1));};
+  function face(l){c.expr=l>=2?'panic':l===1?'flat':'calm';c.lookY=l>=1?-.7:0;c.sweat=l>=3?1:0;c.wob=l>=3?1:0;}
+  face(from);
+  if(to!==from){
+    if(delay)await p.wait(delay);
+    face(to);
+    var mv=[p.to(d,'R',TUN_R[to],to>from?1500:600,easeIO),p.to(dots,'o',to>0?1:0,300)];
+    th.forEach(function(b,k){mv.push(p.to(b,'o',k<to?1:0,k<to?700:250));});
+    await Promise.all(mv);
+  }
+  if(!p.instant)for(;;)await p.wait(1000);
+};
+S.tunnel.n=0;
+function Tunnel(host){
+  this.n=0;this.lv=0;
+  this.pan=new Panel(host,{w:500,h:580,floor:520,cand:{x:250,c:NEED},others:[60,128,396,452],label:'A figure stands among laughing friends who ask what he thinks. His own worried thoughts appear above his head, and darkness closes in until only he and those thoughts are visible.'});
+  this.au={};
+}
+Tunnel.prototype.vol=function(l,fade){
+  var s=this;clearInterval(this.iv);
+  if(MUTED||l<0){['chatter','heartbeat'].forEach(function(k){if(s.au[k])try{s.au[k].pause();}catch(e){}});return;}
+  var tg={chatter:TUN_CH[l],heartbeat:TUN_HB[l]};
+  ['chatter','heartbeat'].forEach(function(k){if(!s.au[k]){var a=s.au[k]=new Audio(asrc(k));a.loop=true;a.volume=0;}var a2=s.au[k];if(a2.paused){var pr=a2.play();if(pr&&pr.catch)pr.catch(noop);}});
+  var n=0,st={chatter:this.au.chatter.volume,heartbeat:this.au.heartbeat.volume},N=fade?24:1;
+  this.iv=setInterval(function(){n++;['chatter','heartbeat'].forEach(function(k){s.au[k].volume=Math.max(0,Math.min(1,st[k]+(tg[k]-st[k])*n/N));});if(n>=N)clearInterval(s.iv);},60);
+};
+Tunnel.prototype.go=function(to,delay){var from=this.lv;this.lv=to;this.pan.run(S.tunnel,false,false,from,to,delay);this.vol(to,true);};
+Tunnel.prototype.stop=function(){this.pan.stop();this.vol(-1);};
+Tunnel.prototype.quiet=function(){this.vol(-1);};
+Tunnel.prototype.prep=function(){this.lv=0;this.go(1,1100);};
+Tunnel.prototype.rest=function(){this.lv=3;this.pan.run(S.tunnel,true,false,3,3);};
+Tunnel.prototype.unit=function(l){this.go(l);};
+
+/* ---------- toolbelt ---------- */
+var TOOLS=[
+ function(g){el('rect',{x:-2,y:1,width:4,height:5,fill:'#C9D2EA'},g);el('circle',{cx:0,cy:15,r:9,fill:'#0E1322',stroke:'#C9D2EA','stroke-width':2.5},g);el('path',{d:'M0,15 V9 M0,15 L4,17',stroke:'#FF9A3C','stroke-width':2,'stroke-linecap':'round',fill:'none'},g);},
+ function(g){el('circle',{cx:0,cy:14,r:10,fill:'#F4F0E8',stroke:'#C9D2EA','stroke-width':2},g);el('path',{d:'M0,6 L3.5,14 L-3.5,14Z',fill:'#F0554A'},g);el('path',{d:'M0,22 L3.5,14 L-3.5,14Z',fill:'#56607C'},g);},
+ function(g){el('rect',{x:-2,y:4,width:4,height:26,rx:1.5,fill:'#C58B4E'},g);el('rect',{x:-10,y:1,width:20,height:8,rx:2,fill:'#C9D2EA'},g);},
+ function(g){el('path',{d:'M-9,30 L9,30 L16,46 L-16,46Z',fill:'#FFD25E',opacity:.28},g);el('rect',{x:-4.5,y:1,width:9,height:18,rx:2,fill:'#56607C'},g);el('path',{d:'M-4.5,19 h9 l4,8 h-17z',fill:'#C9D2EA'},g);el('rect',{x:-8.5,y:27,width:17,height:3,rx:1,fill:'#FFD25E'},g);}
+];
+S.belt=async function(p,from,to){
+  var c=p.cand,by=p.floor-66,xs=[-48,-16,16,48];
+  c.dx=0;c.expr=from>=5?'happy':'calm';
+  p.prop(function(g){el('rect',{x:-66,y:0,width:132,height:11,rx:5,fill:'#8A5A2B'},g);el('rect',{x:-6,y:-1.5,width:12,height:14,rx:2,fill:'none',stroke:'#FFD25E','stroke-width':2.2},g);
+    xs.forEach(function(x){el('rect',{x:x-7,y:9,width:14,height:7,rx:2,fill:'#6E4520'},g);});},c.x,by);
+  var tools=TOOLS.map(function(b,k){var on=k<from-1;var q=p.prop(b,on?c.x+xs[k]:-24,on?by+11:60+k*22,on?1:0);q.s=1.4;return q;});
+  if(to>from){
+    var k=to-2,t=tools[k];
+    c.look=-1;
+    await p.all(p.to(t,'o',1,150),p.to(t,'x',c.x+xs[k],620,easeIO),p.to(t,'y',by-40,330,easeOut),p.to(t,'r',-360,620));
+    t.r=0;
+    await p.to(t,'y',by+11,170,easeIn);
+    p.fx('clink',{vol:.8});
+    c.look=0;c.expr='happy';
+    await p.to(c,'dy',-9,110,easeOut);await p.to(c,'dy',0,150,easeIn);
+    if(to>=5){p.fx('win',{vol:.5});await p.to(c,'dy',-14,140,easeOut);await p.to(c,'dy',0,180,easeIn);}
+    else{await p.wait(500);c.expr='calm';}
+  }
+};
+function Belt(host){this.n=0;this.lv=1;this.pan=new Panel(host,{w:210,h:262,floor:228,cand:{x:108,c:EASE},others:[],label:'A figure wearing a tool belt. As each of the four tools is named, it flies in and drops into a holster on the belt.'});}
+Belt.prototype.stop=function(){this.pan.stop();};
+Belt.prototype.prep=function(){this.lv=1;this.pan.run(S.belt,true,false,1,1);};
+Belt.prototype.rest=function(){this.lv=5;this.pan.run(S.belt,true,false,5,5);};
+Belt.prototype.unit=function(l){l=Math.min(5,l);var f=this.lv;if(l===f)return;this.lv=l;preload(['clink','win']);this.pan.run(S.belt,l<=f,false,l>f?l-1:l,l);};
+
+/* ---------- growing into the suit ---------- */
+function jacketArt(g){
+  el('rect',{x:-53,y:5,width:16,height:88,rx:8,fill:'#4B5674',transform:'rotate(5 -45 6)'},g);
+  el('rect',{x:37,y:5,width:16,height:88,rx:8,fill:'#4B5674',transform:'rotate(-5 45 6)'},g);
+  el('path',{d:'M-30,0 Q-37,2 -38,12 L-42,88 L42,88 L38,12 Q37,2 30,0 Z',fill:'#56607C'},g);
+  el('path',{d:'M-11,0 L0,34 L11,0 Z',fill:'#0E1322'},g);
+  el('path',{d:'M-3,3 L3,3 L5,24 L0,31 L-5,24 Z',fill:'#FF9A3C'},g);
+  el('path',{d:'M-11,0 L-19,16 L0,34 M11,0 L19,16 L0,34',fill:'none',stroke:'#C9D2EA','stroke-width':2,'stroke-linejoin':'round'},g);
+  el('circle',{cx:0,cy:50,r:2.2,fill:'#C9D2EA'},g);el('circle',{cx:0,cy:66,r:2.2,fill:'#C9D2EA'},g);
+}
+function hatArt(g){
+  el('rect',{x:-17,y:-27,width:34,height:27,rx:5,fill:'#56607C'},g);
+  el('rect',{x:-17,y:-10,width:34,height:6,fill:'#FF9A3C'},g);
+  el('ellipse',{cx:0,cy:0,rx:28,ry:5.5,fill:'#4B5674'},g);
+}
+S.fake=async function(p,play,units){
+  var c=p.cand,n=p.others[0],fl=p.floor,id='fk'+(++S.fake.n);
+  var defs=el('defs',{},p.layer),cp=el('clipPath',{id:id},defs);el('rect',{x:0,y:0,width:p.W,height:fl+2},cp);
+  var hold=el('g',{'clip-path':'url(#'+id+')'},p.layer);p.sprite(hold,0,0,1);p.sprite(defs,0,0,1);
+  function dress(f){
+    var jg=el('g',{},hold),hg=el('g',{},hold);jacketArt(jg);hatArt(hg);
+    var j=p.sprite(jg,0,0,0),h=p.sprite(hg,0,0,0);j.off=0;h.off=0;h.tip=0;
+    j.draw=function(o){var fx=f.x+f.dx;o.x=fx+(f.hx-fx)*.55;o.y=fl-110*f.k+3+o.off;o.r=f.lean*40;};
+    h.draw=function(o){o.x=f.hx+f.dir*2;o.y=f.hy-19*f.k+(1-f.k)*30+o.off;o.r=h.tip+f.lean*40;};
+    return {j:j,h:h};
+  }
+  var day=p.tile('Day 90','paper',{x:0,y:26});day.x=(p.W-day.w)/2;
+  var dayT=day.g.querySelector('text');dayT.textContent='Day 1';
+  function show(k){if(units&&units[k]){setU(units[k],true);if(!p.instant)playFx('pluck',1,.7);}}
+  function clearLines(){return Promise.all(p.sprites.filter(function(q){return q.w&&q!==day&&q.o>0;}).map(function(q){return p.to(q,'o',0,300);}));}
+  c.dx=0;c.k=.6;c.expr='happy';
+  n.o=0;n.k=.6;n.dx=160;n.dir=-1;
+  var mine=dress(c),theirs=dress(n);
+  if(!play)return;
+  /* day 1: the role lands on him, far too big, and he is fine */
+  await p.wait(300);
+  mine.j.off=-330;mine.j.o=1;
+  await p.to(mine.j,'off',0,420,easeIn);p.fx('thud',{vol:.9});p.shake();
+  await p.wait(300);
+  mine.h.off=-330;mine.h.o=1;
+  await p.to(mine.h,'off',0,380,easeIn);p.fx('boing',{vol:.6});
+  await p.to(day,'o',1,300);
+  await p.wait(350);
+  await p.all(p.to(mine.h,'tip',-10,250),p.say(c,'fk.1','blue',function(w){return {x:c.x-w/2+10,y:fl-150};}));
+  show(0);
+  await p.wait(1700);
+  /* day 30: still clumsy, still fine */
+  await clearLines();
+  p.fx('tick',{vol:.5});await p.wait(450);dayT.textContent='Day 30';
+  await p.all(p.to(c,'k',.8,900,easeIO),p.to(mine.h,'tip',0,400));
+  p.fx('steps_fast',{vol:.5});
+  await p.to(c,'dx',60,700);
+  p.fx('boing',{vol:.6});
+  await p.all(p.to(c,'lean',.7,260,easeIn),p.to(mine.h,'tip',35,260));
+  await p.wait(450);
+  await p.all(p.to(c,'lean',0,500),p.to(mine.h,'tip',0,500));
+  await p.say(c,'fk.2','blue',function(w){return {x:c.x+c.dx-w/2+10,y:fl-176};});
+  await p.wait(500);
+  await p.all(p.to(c,'dx',0,600),clearLines());
+  /* day 90: it fits */
+  p.fx('tick',{vol:.5});await p.wait(450);dayT.textContent='Day 90';
+  await p.to(c,'k',1,1100,easeIO);
+  await p.wait(250);
+  await p.to(mine.h,'tip',-14,250);
+  await p.say(c,'fk.3','blue',function(w){return {x:c.x-w/2+20,y:fl-212};});
+  p.fx('win',{vol:.5});
+  await p.to(mine.h,'tip',0,300);
+  show(1);
+  await p.wait(1500);
+  await clearLines();
+  /* the newcomer */
+  n.o=1;n.expr='panic';n.wob=1;theirs.j.o=1;theirs.h.o=1;
+  await p.to(n,'dx',0,1300);
+  c.look=1;
+  await p.say(n,'fk.5','pale',function(w){return {x:n.x-w/2,y:fl-150};});
+  await p.wait(350);
+  await p.say(c,'fk.4','blue',function(w){return {x:c.x-w/2+20,y:fl-212};});
+  n.expr='calm';n.wob=0;
+  p.fx('win',{vol:.5});
+};
+S.fake.n=0;
+function Fake(host){this.n=1;this.units=[];this.pan=new Panel(host,{w:500,h:420,floor:372,cand:{x:190,c:EASE},others:[390],label:'A small figure is dropped into a suit jacket and hat that are far too big, and laughs it off. Over ninety days the figure grows until the suit fits, at ease the whole way. A newcomer arrives drowning in a suit and is told: it is not fake, it is new.'});}
+Fake.prototype.stop=function(){this.pan.stop();};
+Fake.prototype.prep=function(){this.pan.run(S.fake,true,false,false);};
+Fake.prototype.rest=function(){this.pan.run(S.fake,true,false,true,this.units);};
+Fake.prototype.do=function(){preload(['fk.1','fk.2','fk.3','fk.4','fk.5','tick','boing','thud','win','steps_fast']);this.pan.run(S.fake,false,false,true,this.units);};
+Fake.prototype.undo=function(){this.units.forEach(function(u){setU(u,false);});this.prep();};
+
+/* ---------- static vignettes ---------- */
+var VIGS={
+  title:{figs:[{x:70,lean:0,c:EASE,ex:'happy'},{x:310,lean:-0.2,c:PAPER,dir:-1,ex:'happy'}],tiles:[{t:'One sentence.',s:'blue',x:104,y:237}],bar:1},
+  end:{figs:[{x:60,lean:0,c:EASE,ex:'happy'},{x:318,lean:-0.2,c:PAPER,dir:-1,ex:'happy'}],tiles:[{t:"I'd like the role.",s:'blue',x:94,y:237}],bar:1},
+  s1:{figs:[{x:80,lean:0,c:EASE,ex:'happy'}],tiles:[{t:'fine either way',s:'blue',x:116,y:237}]},
+  s2:{figs:[{x:80,lean:0,c:EASE,ex:'happy'}],tiles:[{t:'plan A',s:'paper',x:116,y:237},{t:'plan B',s:'paper',x:176,y:237},{t:'plan C',s:'paper',x:236,y:237},{t:'plan D',s:'paper',x:146,y:213},{t:'plan E',s:'paper',x:206,y:213}]},
+  s3:{figs:[{x:80,lean:0,c:EASE}],tiles:[{t:"It's faster.",s:'blue',x:116,y:237}],bar:1},
+  s4:{figs:[{x:80,lean:0.06,c:EASE,ex:'happy'},{x:300,lean:-0.16,c:PAPER,dir:-1,ex:'happy'}],tiles:[{t:'ha.',s:'blue',x:116,y:237},{t:'ha!',s:'paper',x:226,y:237}]},
+  warm:{figs:[{x:70,lean:.14,c:EASE,ex:'happy'},{x:300,lean:-.06,c:PAPER,dir:-1,ex:'happy'}],tiles:[{t:'and then what?',s:'blue',x:106,y:237},{t:'so THEN…',s:'paper',x:196,y:211}]},
+  comp:{figs:[{x:70,lean:-.06,c:EASE,ex:'happy'},{x:300,lean:.1,c:PAPER,dir:-1,ex:'side'}],tiles:[{t:"I've got this.",s:'blue',x:106,y:237},{t:'Show me.',s:'paper',x:204,y:211}]},
+  mute:{screen:1,figs:[{x:180,lean:.05,c:EASE,ex:'happy',fl:226}]}
+};
+function vig(svg,c){
+  var fl=260;
+  if(c.screen){
+    el('rect',{x:40,y:30,width:280,height:200,rx:14,fill:'#0A0E1A',stroke:'#2A3555','stroke-width':2},svg);
+    el('rect',{x:170,y:230,width:20,height:24,fill:'#2A3555'},svg);el('rect',{x:120,y:252,width:120,height:7,rx:3,fill:'#2A3555'},svg);
+    var mu=el('g',{transform:'translate(270,66) scale(1.5)'},svg);
+    el('path',{d:'M-12,-5 h7 l8,-7 v24 l-8,-7 h-7z',fill:'#8C97B3'},mu);el('path',{d:'M8,-6 l11,12 M19,-6 l-11,12',stroke:'#FF9A3C','stroke-width':3,'stroke-linecap':'round'},mu);
+  }else el('line',{x1:6,y1:fl,x2:354,y2:fl,stroke:'#2A3555','stroke-width':2},svg);
+  c.figs.forEach(function(f){var g=new Fig(svg,f.x,f.c,f.fl||fl);g.lean=f.lean;g.dir=f.dir||1;g.expr=f.ex||'calm';g.draw(0,false);});
+  var layer=el('g',{},svg),last=null;
+  (c.tiles||[]).forEach(function(t){var m=makeTile(layer,t.t,t.s);m.g.setAttribute('transform','translate('+t.x+','+t.y+')');last={x:t.x,w:m.w};});
+  if(c.bar&&last)el('rect',{x:last.x+last.w+10,y:fl-13,width:48,height:4,rx:2,fill:'#5A6688'},layer);
+}
+
+/* ---------- deck ---------- */
+var ARROW='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg>';
+[].forEach.call(document.querySelectorAll('.arr'),function(a){a.innerHTML=ARROW;});
+[].forEach.call(document.querySelectorAll('.vig'),function(s){vig(s,VIGS[s.getAttribute('data-vig')]);});
+
+var deck=document.getElementById('deck');
+var slides=[].slice.call(deck.querySelectorAll('.slide'));
+var count=document.getElementById('count'),prog=document.getElementById('prog'),pips=document.getElementById('pips'),cur=-1;
+slides.forEach(function(){prog.appendChild(document.createElement('i'));});
+function fit(){var s=Math.min(deck.clientWidth/1280,deck.clientHeight/720);deck.style.setProperty('--s',s.toFixed(4));}
+window.addEventListener('resize',fit);fit();
+
+function mk(els,on,off){return {els:els||[],on:on||null,off:off||null};}
+function buildUnits(f){
+  var units=[];
+  var auto=f.querySelector('h1')||f.querySelector('.shift:not(.guard) > .num');
+  var visual=f.querySelector('.cols,.flows,.ring,.steps,.ratebox');
+  var seenBig=false;
+  if(!auto&&!f.querySelector('.scene')){
+    [].forEach.call(f.querySelectorAll('.col,.pic,.flow,.steps>li,.ring .tile,.ring .mid,.lead,.body,.tiles>.tile,.big'),function(e){
+      var card=e.closest('.col,.pic');
+      if(card&&card!==e)return;
+      if(e.closest('.scene,.statrow'))return;
+      if(e.matches('.big')){
+        if(!seenBig){seenBig=true;return;}
+        var st=f.querySelector('.big.strike');
+        units.push(mk([e],st?function(){st.classList.remove('pending');}:null,st?function(){st.classList.add('pending');}:null));return;
+      }
+      if(e.matches('.tile.struck')){units.push(mk([],function(){e.classList.remove('pending');},function(){e.classList.add('pending');}));return;}
+      if(e.matches('.ring .mid')){var u=mk([e]);u.snd='loop';units.push(u);return;}
+      if(e.matches('.lead,.body')&&visual&&(e.compareDocumentPosition(visual)&Node.DOCUMENT_POSITION_FOLLOWING))return;
+      units.push(mk([e]));
+    });
+  }
+  units.forEach(function(u){u.els.forEach(function(e){
+    e.classList.add('r','on');
+    var kids=e.matches('.flow')?e.children:e.querySelectorAll('.tile');
+    [].forEach.call(kids,function(c,k){c.style.setProperty('--k',k);});
+  });});
+  var n=0;
+  [].forEach.call(f.querySelectorAll('.eyebrow,h1,h2,.big,.stat,.lead,.body,.num,.vig,.bg,.player,.url,.flowhead,.tiles,.ring>svg,.src'),function(e){
+    if(e.closest('.r')||e.querySelector('.r')||e.closest('.scene'))return;
+    e.classList.add('i');e.style.setProperty('--i',n++);
+  });
+  return units;
+}
+slides.forEach(function(sl){
+  var f=sl.querySelector('.frame'),els=[].slice.call(f.querySelectorAll(':scope > .stage'));
+  if(!els.length){f.classList.add('stage','on');els=[f];}
+  sl._stages=els.map(function(e){
+    var comp=null,h=e.querySelector('.scene'),r=e.querySelector('[data-rate]');
+    var tu=e.querySelector('[data-tunnel]');if(h)comp=new Scene(h,h.getAttribute('data-scene'));else if(r)comp=new Rate(r,r.getAttribute('data-rate'));else if(tu)comp=new Tunnel(tu);var be=e.querySelector('[data-belt]');if(be)comp=new Belt(be);var fk=e.querySelector('[data-fake]');if(fk)comp=new Fake(fk);
+    var us=buildUnits(e);if(comp&&comp.units)comp.units=us;
+    return {el:e,comp:comp,units:us,auto:!!(comp&&comp.units)};
+  });
+  sl._steps=[];
+  sl._stages.forEach(function(st,si){
+    if(si>0)sl._steps.push({t:'stage',si:si});
+    if(st.comp)for(var k=0;k<st.comp.n;k++)sl._steps.push({t:'comp',si:si,k:k});
+    if(!st.auto)st.units.forEach(function(u){sl._steps.push({t:'unit',u:u,si:si});});
+  });
+  sl._pos=0;
+});
+function setU(u,on){u.els.forEach(function(e){e.classList.toggle('on',on);});if(on){if(u.on)u.on();}else if(u.off)u.off();}
+var tick=0;
+function countUp(st){
+  var s=st.querySelector('.stat');if(!s||REDUCED)return;
+  var node=s.firstChild,end=10,v=0;if(node.textContent.trim()!=='10')return;clearInterval(tick);node.textContent='1';
+  tick=setInterval(function(){v++;node.textContent=String(Math.min(end,v+1));if(v+1>=end)clearInterval(tick);},95);
+}
+function showStage(sl,si,fresh){
+  sl._stages.forEach(function(st,k){
+    if(st.el.classList.contains('frame')){st.el.classList.remove('live');return;}
+    st.el.classList.toggle('on',k===si);st.el.classList.remove('live');
+    if(k!==si&&st.comp)st.comp.stop();
+  });
+  var st=sl._stages[si];
+  if(fresh){st.units.forEach(function(u){setU(u,false);});if(st.comp)st.comp.prep();void st.el.offsetWidth;st.el.classList.add('live');countUp(st.el);}
+  else{st.units.forEach(function(u){setU(u,true);});if(st.comp)st.comp.rest();}
+}
+function doStep(sl,k){var s=sl._steps[k];if(s.t==='stage')showStage(sl,s.si,true);else if(s.t==='comp')sl._stages[s.si].comp.do(s.k);else{setU(s.u,true);var st=sl._stages[s.si];if(st.comp&&st.comp.unit)st.comp.unit(st.units.indexOf(s.u)+2);{var te=s.u.els[0];if(s.u.snd)playFx(s.u.snd,1,.8);else if(te&&te.matches('.ring .tile')){var rn=[].indexOf.call(te.parentNode.querySelectorAll('.tile'),te);playFx('pluck',Math.pow(2,[0,2,4,7,9][rn%5]/12),.7);}else playFx('pluck',1,.7);}}}
+function undoStep(sl,k){var s=sl._steps[k];if(s.t==='stage')showStage(sl,s.si-1,false);else if(s.t==='comp')sl._stages[s.si].comp.undo(s.k);else{setU(s.u,false);var st2=sl._stages[s.si];if(st2.comp&&st2.comp.unit)st2.comp.unit(st2.units.indexOf(s.u)+1);}}
+function pipsUpdate(){
+  var sl=slides[cur];pips.textContent='';
+  for(var k=0;k<sl._steps.length;k++){var d=document.createElement('i');if(k<sl._pos)d.className='on';pips.appendChild(d);}
+  count.textContent=(cur+1)+' / '+slides.length;
+}
+function go(i,dir){
+  i=Math.max(0,Math.min(slides.length-1,i));
+  if(i===cur)return;
+  if(cur>=0){slides[cur].classList.remove('cur');slides[cur]._stages.forEach(function(st){if(st.comp)st.comp.stop();});}
+  cur=i;var sl=slides[i];
+  [].forEach.call(prog.children,function(seg,n){seg.className=n<=i?'on':'';});
+  if(dir==='back'){sl._pos=sl._steps.length;showStage(sl,sl._stages.length-1,false);}
+  else{sl._pos=0;showStage(sl,0,true);}
+  sl.classList.add('cur');
+  pipsUpdate();
+  var nx=slides[i+1];
+  [sl,nx].forEach(function(s){if(s)s._stages.forEach(function(st){if(st.comp&&st.comp.name)preload(sceneIds(st.comp.name));});});
+}
+function fwd(){var sl=slides[cur];if(sl._pos<sl._steps.length){doStep(sl,sl._pos);sl._pos++;pipsUpdate();}else go(cur+1);}
+function back(){var sl=slides[cur];if(sl._pos>0){sl._pos--;undoStep(sl,sl._pos);pipsUpdate();}else go(cur-1,'back');}
+function replay(){
+  var sl=slides[cur];
+  for(var k=sl._pos-1;k>=0;k--){var s=sl._steps[k];if(s.t==='comp'){if(sl._stages[s.si].el.classList.contains('on'))sl._stages[s.si].comp.do(s.k);return;}if(s.t==='stage')return;}
+}
+document.getElementById('prev').addEventListener('click',back);
+document.getElementById('next').addEventListener('click',fwd);
+document.getElementById('full').addEventListener('click',function(){
+  try{if(document.fullscreenElement){document.exitFullscreen();}else{var p=document.documentElement.requestFullscreen();if(p&&p.catch)p.catch(noop);}}catch(e){}
+});
+var sndBtn=document.getElementById('snd');
+function setMute(m){
+  MUTED=m;sndBtn.textContent=m?'Sound off':'Sound on';sndBtn.classList.toggle('off',m);sndBtn.setAttribute('aria-pressed',String(!m));
+  if(m)slides.forEach(function(sl){sl._stages.forEach(function(st){if(st.comp){if(st.comp.quiet)st.comp.quiet();var ps=st.comp.pan?[st.comp.pan]:[st.comp.a.pan,st.comp.b.pan];ps.forEach(function(p){p.playing.forEach(function(a){try{a.pause();}catch(e){}});});}});});
+}
+sndBtn.addEventListener('click',function(){setMute(!MUTED);});
+var start=document.getElementById('start');
+function begin(){if(start.hidden)return false;start.hidden=true;preload(['pluck','loop','soft']);try{var a=new Audio(asrc('click'));a.volume=.01;var p=a.play();if(p&&p.catch)p.catch(noop);}catch(e){}return true;}
+start.addEventListener('click',begin);
+var grid=document.getElementById('grid'),thumbs=document.getElementById('thumbs'),allBtn=document.getElementById('all');
+document.addEventListener('keydown',function(e){
+  if(e.altKey||e.ctrlKey||e.metaKey)return;
+  if(begin()){e.preventDefault();return;}
+  if(e.key==='Escape'&&!grid.hidden){closeGrid();return;}
+  if(e.key==='g'||e.key==='G'){if(grid.hidden)openGrid();else closeGrid();return;}
+  if(!grid.hidden)return;
+  var tag=(e.target&&e.target.tagName)||'';
+  if(e.key==='ArrowRight'||e.key==='PageDown'||(e.key===' '&&tag!=='BUTTON')){e.preventDefault();fwd();}
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();back();}
+  else if(e.key==='Home'){e.preventDefault();go(0);}
+  else if(e.key==='End'){e.preventDefault();go(slides.length-1);}
+  else if(e.key==='r'||e.key==='R'){replay();}
+  else if(e.key==='m'||e.key==='M'){setMute(!MUTED);}
+});
+function closeGrid(){grid.hidden=true;thumbs.textContent='';allBtn.setAttribute('aria-expanded','false');allBtn.textContent='All slides';}
+function openGrid(){
+  thumbs.textContent='';
+  slides.forEach(function(sl,i){
+    var b=document.createElement('button');b.type='button';b.className='thumb'+(i===cur?' cur':'');
+    var w=document.createElement('div');w.className='win';
+    var c=sl.querySelector('.frame').cloneNode(true);c.setAttribute('inert','');c.setAttribute('aria-hidden','true');
+    var sts=c.querySelectorAll(':scope > .stage');[].forEach.call(sts,function(s,k){s.classList.toggle('on',k===0);});
+    [].forEach.call(c.querySelectorAll('.r'),function(r){r.classList.add('on');});
+    w.appendChild(c);b.appendChild(w);
+    var h=sl.querySelector('h1,h2,.big:not(.strike)')||sl.querySelector('.eyebrow');
+    var cap=document.createElement('span');cap.textContent=(i+1)+' · '+(h?h.textContent.replace(/\s+/g,' ').trim():'Slide');
+    b.appendChild(cap);
+    b.addEventListener('click',function(){closeGrid();if(i===cur){cur=-1;slides[i].classList.remove('cur');}go(i);});
+    thumbs.appendChild(b);
+  });
+  grid.hidden=false;allBtn.setAttribute('aria-expanded','true');allBtn.textContent='Close';
+  var c=thumbs.children[cur];if(c){c.focus();c.scrollIntoView({block:'center'});}
+}
+allBtn.addEventListener('click',function(){if(grid.hidden)openGrid();else closeGrid();});
+window.__deck={busy:function(){return slides[cur]._stages.some(function(st){if(!st.comp)return false;var ps=st.comp.pan?[st.comp.pan]:[st.comp.a.pan,st.comp.b.pan];return ps.some(function(p){return p.running&&!p.instant;});});},kind:function(){var sl=slides[cur],s=sl._steps[sl._pos-1];return s?s.t:'enter';},go:go,fwd:fwd,back:back,slides:slides,state:function(){return {cur:cur,pos:slides[cur]._pos,steps:slides[cur]._steps.length};}};
+go(0);
+})();
+</script>
+</body>
+</html>
