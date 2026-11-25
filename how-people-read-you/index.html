@@ -621,7 +621,7 @@ html,body{overscroll-behavior:none}
 
 </main>
 
-<div id="start" role="button" tabindex="0" aria-label="Start the presentation with sound"><div><div class="st1">Press any key to start</div><p>Sound is on. Space or → plays the next step · R replays a scene · M mutes · G shows all slides</p></div></div>
+<div id="start" role="button" tabindex="0" aria-label="Start the presentation with sound"><div><div class="st1">Press any key to start</div><p>Sound is on. Space or → plays the next step · R replays a scene · M mutes · G shows all slides</p><p class="st3" style="font-size:14px;opacity:.75">No sound? Turn the volume up and, on a phone, switch off silent mode.</p></div></div>
 <div id="grid" hidden role="dialog" aria-label="All slides"><h2>All slides</h2><div id="thumbs"></div></div>
 <div id="prog" aria-hidden="true"></div>
 <button id="more" type="button" aria-label="Show or hide the slide controls">•••</button>
@@ -669,6 +669,30 @@ function loadBuf(id){
     .then(function(b){bufs[k]=b;return b;})
     .catch(function(e){delete loading[k];if(location.protocol==='file:')noWA=true;throw e;});
 }
+/* iPhone: Web Audio is silenced by the ring/silent switch and is suspended whenever the page is
+   interrupted (Control Center, screen mirroring, a call). A looping silent audio element plus the
+   audio-session hint keep it audible, and every tap or key press wakes the context up again. */
+var keepEl=null;
+function silentUri(){
+  var n=2000,b=new Uint8Array(44+n),v=new DataView(b.buffer),i;
+  function w(o,t){for(var k=0;k<t.length;k++)b[o+k]=t.charCodeAt(k);}
+  w(0,'RIFF');v.setUint32(4,36+n,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,8000,true);v.setUint32(28,8000,true);v.setUint16(32,1,true);v.setUint16(34,8,true);w(36,'data');v.setUint32(40,n,true);
+  for(i=0;i<n;i++)b[44+i]=128;
+  var t='';for(i=0;i<b.length;i++)t+=String.fromCharCode(b[i]);
+  return 'data:audio/wav;base64,'+btoa(t);
+}
+function unlockAudio(){
+  try{if(navigator.audioSession)navigator.audioSession.type='playback';}catch(e){}
+  var c=ac();
+  if(c&&c.state!=='running'&&c.resume){try{var p=c.resume();if(p&&p.catch)p.catch(noop);}catch(e){}}
+  try{
+    if(!keepEl){keepEl=new Audio(silentUri());keepEl.loop=true;keepEl.setAttribute('playsinline','');keepEl.volume=1;}
+    if(keepEl.paused){var q=keepEl.play();if(q&&q.catch)q.catch(noop);}
+  }catch(e){}
+}
+['touchend','click','keydown'].forEach(function(ev){document.addEventListener(ev,unlockAudio,true);});
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&keepEl)unlockAudio();});
 /* plays through Web Audio (works on phones, volume and looping included); falls back to an audio element */
 function playSound(id,o,onend){
   o=o||{};var h={stopped:false,src:null,g:null,el:null};
@@ -1737,7 +1761,7 @@ function keepAwake(){try{if(navigator.wakeLock&&document.visibilityState==='visi
 document.addEventListener('visibilitychange',function(){if(start.hidden)keepAwake();});
 function begin(){
   if(start.hidden)return false;start.hidden=true;
-  var c=ac();if(c&&c.resume){try{c.resume();}catch(e){}}
+  unlockAudio();var c=ac();
   if(c){try{var b=c.createBuffer(1,1,22050),sr=c.createBufferSource();sr.buffer=b;sr.connect(c.destination);sr.start(0);}catch(e){}}
   else{try{var a=new Audio(asrc('click'));a.volume=.01;var p=a.play();if(p&&p.catch)p.catch(noop);}catch(e){}}
   preload([RV.id,'loop']);preloadAll();keepAwake();
@@ -1796,7 +1820,7 @@ function openGrid(){
   var c=thumbs.children[cur];if(c){c.focus();c.scrollIntoView({block:'center'});}
 }
 allBtn.addEventListener('click',function(){if(grid.hidden)openGrid();else closeGrid();});
-window.__deck={mus:function(){return MUS.id+':'+(MUS.h?MUS.h.v.toFixed(2)+(MUS.h.src?':wa':MUS.h.el?':el':':pending'):'-');},busy:function(){return slides[cur]._stages.some(function(st){if(!st.comp)return false;var ps=st.comp.pan?[st.comp.pan]:[st.comp.a.pan,st.comp.b.pan];return ps.some(function(p){return p.running&&!p.instant;});});},kind:function(){var sl=slides[cur],s=sl._steps[sl._pos-1];return s?s.t:'enter';},go:go,fwd:fwd,back:back,slides:slides,state:function(){return {cur:cur,pos:slides[cur]._pos,steps:slides[cur]._steps.length};}};
+window.__deck={audio:function(){return (actx?actx.state:'none')+' bufs:'+Object.keys(bufs).length+' noWA:'+noWA;},mus:function(){return MUS.id+':'+(MUS.h?MUS.h.v.toFixed(2)+(MUS.h.src?':wa':MUS.h.el?':el':':pending'):'-');},busy:function(){return slides[cur]._stages.some(function(st){if(!st.comp)return false;var ps=st.comp.pan?[st.comp.pan]:[st.comp.a.pan,st.comp.b.pan];return ps.some(function(p){return p.running&&!p.instant;});});},kind:function(){var sl=slides[cur],s=sl._steps[sl._pos-1];return s?s.t:'enter';},go:go,fwd:fwd,back:back,slides:slides,state:function(){return {cur:cur,pos:slides[cur]._pos,steps:slides[cur]._steps.length};}};
 go(0);
 })();
 </script>
