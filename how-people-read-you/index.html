@@ -530,13 +530,13 @@ html,body{overscroll-behavior:none}
 
 <!-- 15 -->
 <section class="slide"><div class="frame">
-  <div class="stage center" data-sting="0.84"><div class="shift guard" style="grid-template-columns:auto minmax(0,1fr) 290px;gap:34px">
+  <div class="stage center" data-sting="m_guard"><div class="shift guard" style="grid-template-columns:auto minmax(0,1fr) 290px;gap:34px">
     <div class="num">A</div>
     <div class="txt"><div class="eyebrow">Guardrail: warmth</div><h2>First, people ask: do you mean well?</h2>
       <p class="lead">Ease without interest in the other person reads as arrogance. People who ask follow-up questions are liked more.</p><p class="body hi">Remember: the biggest compliment you can pay someone is your attention.</p></div>
     <svg class="vig" viewBox="0 0 360 300" data-vig="warm" aria-hidden="true"></svg>
   </div><div class="src">Fiske, Cuddy &amp; Glick, 2007 · Huang, Yeomans, Brooks, Minson &amp; Gino, 2017</div></div>
-  <div class="stage center" data-sting="0.84"><div class="shift guard" style="grid-template-columns:auto minmax(0,1fr) 290px;gap:34px">
+  <div class="stage center" data-sting="m_guard"><div class="shift guard" style="grid-template-columns:auto minmax(0,1fr) 290px;gap:34px">
     <div class="num">B</div>
     <div class="txt"><div class="eyebrow">Guardrail: competence</div><h2>Then they ask: can you deliver?</h2>
       <p class="lead hi">Confidence gets you the room. Being found out loses it.</p>
@@ -631,6 +631,7 @@ html,body{overscroll-behavior:none}
   <span id="pips" aria-hidden="true"></span>
   <button id="next" type="button" aria-label="Next step or slide">→</button>
   <button id="snd" type="button" aria-pressed="true">Sound on</button>
+  <button id="rvb" type="button">Reveal sound: Pop</button>
   <button id="all" type="button" aria-expanded="false">All slides</button>
   <button id="full" type="button">Full screen</button>
 </nav>
@@ -643,7 +644,7 @@ var PAPER='#E9E4D8', NEED='#FF9A3C', EASE='#7F97FF', GREY='#8C97B3', INK='#0E132
 var TS={req:{bg:NEED,fg:'#1A1206'}, pale:{bg:'#4A3422',fg:'#FFD2A1'}, blue:{bg:'#4460F0',fg:'#FFFFFF'}, paper:{bg:'#F4F0E8',fg:'#0E1322'}};
 var FLOOR=290, TH=22, ROW=24;
 var REDUCED=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-var LINES={"iv.n0": "I'd like the role", "iv.n1": "sorry I'm early", "iv.n2": "I know you're busy", "iv.n3": "I just", "iv.n4": "honestly, any role", "iv.n5": "I really need this", "iv.n6": "does that make sense?", "iv.e0": "I'd like the role.", "iv.r": "Tell me more.", "tx.n0": "Want to hang out Saturday?", "tx.t1": "They probably didn't see it. Send another.", "tx.n1": "no worries if not!", "tx.n2": "??", "tx.n3": "sorry to bug you", "tx.n4": "did you see this?", "tx.n5": "it's fine either way", "tx.n6": "hello?", "tx.t2": "Nailed it.", "tx.e0": "Want to hang out Saturday?", "tx.t3": "Anyway. Lunch.", "tx.r": "Can't Saturday. Sunday?", "lo.n0": "What are you all doing Friday?", "lo.n1": "must be nice", "lo.n2": "I'm free, by the way", "lo.n3": "nobody tells me anything", "lo.n4": "it's fine", "lo.n5": "I'll just stay in", "lo.e0": "I'm getting pizza Friday. Come.", "lo.r": "I'm in.", "lo.r2": "Me too!", "bs.p": "Why did you do it this way?", "bs.n0": "It halves the load time", "bs.n1": "well, I mean", "bs.n2": "I wasn't sure", "bs.n3": "Sam said it was fine", "bs.n4": "I can redo it", "bs.n5": "sorry", "bs.n6": "it took me all week", "bs.e0": "It halves the load time.", "bs.t1": "Don't fill the silence. Do NOT fill the silence.", "bs.r": "Good. Ship it.", "pt.x1": "Here we see the newcomer, approaching the herd.", "pt.x2": "He circles. Once. Twice.", "pt.n0": "Hi, I'm new here", "pt.n1": "sorry to interrupt", "pt.x3": "He has chosen to apologize. A bold strategy.", "pt.n2": "you probably don't care", "pt.n3": "I love that band too!", "pt.n4": "ha ha ha", "pt.n5": "anyway", "pt.x4": "The herd closes ranks. Nature can be cruel.", "pt.x5": "A second newcomer. Note: no circling.", "pt.e0": "Hey. What's the story here?", "pt.r": "Pull up a chair.", "pt.x6": "Extraordinary. Accepted by the herd in under ten seconds.", "no.p": "It's a no for now.", "no.n0": "Could you reconsider?", "no.n1": "please", "no.n2": "I'll do anything", "no.n3": "what did I do wrong?", "no.n4": "one more chance", "no.n5": "I can lower my price", "no.n6": "are you sure?", "no.e0": "Fair enough. What would change it?", "no.r": "More client experience.", "no.e1": "Got it. Thanks.", "no.e2": "Two client projects, done.", "no.r2": "Now it's a yes.", "fk.1": "Okay. It's a little big.", "fk.2": "Still finding the sleeves.", "fk.3": "Huh. It fits.", "fk.5": "This isn't me!", "fk.4": "It's not fake. It's new."}, DUR={"boing": 0.84, "bs_e0": 1.8, "bs_n0": 1.96, "bs_n1": 2.27, "bs_n2": 1.88, "bs_n3": 1.65, "bs_n4": 1.41, "bs_n5": 1.72, "bs_n6": 2.35, "bs_p": 1.41, "bs_r": 2.12, "bs_t1": 4.28, "buzz": 0.84, "chatter": 6.03, "click": 0.52, "clink": 0.73, "crash": 1.23, "crickets": 3.03, "ding": 0.84, "door": 1.04, "fk_1": 2.85, "fk_2": 2.19, "fk_3": 2.43, "fk_4": 2.19, "fk_5": 1.41, "heartbeat": 5.04, "iv_e0": 2.19, "iv_n0": 1.65, "iv_n1": 1.96, "iv_n2": 1.65, "iv_n3": 3.0, "iv_n4": 2.04, "iv_n5": 2.12, "iv_n6": 1.31, "iv_r": 1.49, "lo_e0": 2.19, "lo_n0": 2.12, "lo_n1": 1.96, "lo_n2": 2.19, "lo_n3": 2.19, "lo_n4": 1.72, "lo_n5": 3.24, "lo_r": 1.41, "lo_r2": 0.99, "loop": 1.52, "m_outro": 45.06, "m_sting": 3.03, "m_title": 60.06, "no_e0": 3.63, "no_e1": 1.96, "no_e2": 2.12, "no_n0": 2.27, "no_n1": 2.77, "no_n2": 2.27, "no_n3": 1.72, "no_n4": 2.43, "no_n5": 1.96, "no_n6": 1.88, "no_p": 1.96, "no_r": 2.04, "no_r2": 2.04, "open": 1.04, "pluck": 0.63, "pt_e0": 2.27, "pt_n0": 2.51, "pt_n1": 1.49, "pt_n2": 1.57, "pt_n3": 1.72, "pt_n4": 2.35, "pt_n5": 2.35, "pt_r": 0.99, "pt_x1": 3.16, "pt_x2": 3.24, "pt_x3": 4.52, "pt_x4": 4.36, "pt_x5": 3.47, "pt_x6": 5.33, "skip": 1.52, "soft": 0.52, "steps_fast": 1.65, "steps_slow": 2.04, "thud": 0.52, "thunk": 0.52, "tick": 3.03, "tiptoe": 4.05, "trombone": 2.51, "tx_e0": 2.77, "tx_n0": 1.23, "tx_n1": 1.57, "tx_n2": 1.96, "tx_n3": 1.88, "tx_n4": 1.65, "tx_n5": 1.8, "tx_n6": 1.49, "tx_r": 1.88, "tx_t1": 2.69, "tx_t2": 1.49, "tx_t3": 2.04, "violin": 5.04, "whistle": 2.51, "whoosh": 0.63, "win": 1.04};
+var LINES={"iv.n0": "I'd like the role", "iv.n1": "sorry I'm early", "iv.n2": "I know you're busy", "iv.n3": "I just", "iv.n4": "honestly, any role", "iv.n5": "I really need this", "iv.n6": "does that make sense?", "iv.e0": "I'd like the role.", "iv.r": "Tell me more.", "tx.n0": "Want to hang out Saturday?", "tx.t1": "They probably didn't see it. Send another.", "tx.n1": "no worries if not!", "tx.n2": "??", "tx.n3": "sorry to bug you", "tx.n4": "did you see this?", "tx.n5": "it's fine either way", "tx.n6": "hello?", "tx.t2": "Nailed it.", "tx.e0": "Want to hang out Saturday?", "tx.t3": "Anyway. Lunch.", "tx.r": "Can't Saturday. Sunday?", "lo.n0": "What are you all doing Friday?", "lo.n1": "must be nice", "lo.n2": "I'm free, by the way", "lo.n3": "nobody tells me anything", "lo.n4": "it's fine", "lo.n5": "I'll just stay in", "lo.e0": "I'm getting pizza Friday. Come.", "lo.r": "I'm in.", "lo.r2": "Me too!", "bs.p": "Why did you do it this way?", "bs.n0": "It halves the load time", "bs.n1": "well, I mean", "bs.n2": "I wasn't sure", "bs.n3": "Sam said it was fine", "bs.n4": "I can redo it", "bs.n5": "sorry", "bs.n6": "it took me all week", "bs.e0": "It halves the load time.", "bs.t1": "Don't fill the silence. Do NOT fill the silence.", "bs.r": "Good. Ship it.", "pt.x1": "Here we see the newcomer, approaching the herd.", "pt.x2": "He circles. Once. Twice.", "pt.n0": "Hi, I'm new here", "pt.n1": "sorry to interrupt", "pt.x3": "He has chosen to apologize. A bold strategy.", "pt.n2": "you probably don't care", "pt.n3": "I love that band too!", "pt.n4": "ha ha ha", "pt.n5": "anyway", "pt.x4": "The herd closes ranks. Nature can be cruel.", "pt.x5": "A second newcomer. Note: no circling.", "pt.e0": "Hey. What's the story here?", "pt.r": "Pull up a chair.", "pt.x6": "Extraordinary. Accepted by the herd in under ten seconds.", "no.p": "It's a no for now.", "no.n0": "Could you reconsider?", "no.n1": "please", "no.n2": "I'll do anything", "no.n3": "what did I do wrong?", "no.n4": "one more chance", "no.n5": "I can lower my price", "no.n6": "are you sure?", "no.e0": "Fair enough. What would change it?", "no.r": "More client experience.", "no.e1": "Got it. Thanks.", "no.e2": "Two client projects, done.", "no.r2": "Now it's a yes.", "fk.1": "Okay. It's a little big.", "fk.2": "Still finding the sleeves.", "fk.3": "Huh. It fits.", "fk.5": "This isn't me!", "fk.4": "It's not fake. It's new."}, DUR={"boing": 0.84, "bs_e0": 1.8, "bs_n0": 1.96, "bs_n1": 2.27, "bs_n2": 1.88, "bs_n3": 1.65, "bs_n4": 1.41, "bs_n5": 1.72, "bs_n6": 2.35, "bs_p": 1.41, "bs_r": 2.12, "bs_t1": 4.28, "buzz": 0.84, "chatter": 6.03, "click": 0.52, "clink": 0.73, "crash": 1.23, "crickets": 3.03, "ding": 0.84, "door": 1.04, "fk_1": 2.85, "fk_2": 2.19, "fk_3": 2.43, "fk_4": 2.19, "fk_5": 1.41, "heartbeat": 5.04, "iv_e0": 2.19, "iv_n0": 1.65, "iv_n1": 1.96, "iv_n2": 1.65, "iv_n3": 3.0, "iv_n4": 2.04, "iv_n5": 2.12, "iv_n6": 1.31, "iv_r": 1.49, "lo_e0": 2.19, "lo_n0": 2.12, "lo_n1": 1.96, "lo_n2": 2.19, "lo_n3": 2.19, "lo_n4": 1.72, "lo_n5": 3.24, "lo_r": 1.41, "lo_r2": 0.99, "loop": 1.52, "m_guard": 2.51, "m_outro": 45.06, "m_sting": 3.03, "m_title": 60.06, "no_e0": 3.63, "no_e1": 1.96, "no_e2": 2.12, "no_n0": 2.27, "no_n1": 2.77, "no_n2": 2.27, "no_n3": 1.72, "no_n4": 2.43, "no_n5": 1.96, "no_n6": 1.88, "no_p": 1.96, "no_r": 2.04, "no_r2": 2.04, "open": 1.04, "pluck": 0.63, "pt_e0": 2.27, "pt_n0": 2.51, "pt_n1": 1.49, "pt_n2": 1.57, "pt_n3": 1.72, "pt_n4": 2.35, "pt_n5": 2.35, "pt_r": 0.99, "pt_x1": 3.16, "pt_x2": 3.24, "pt_x3": 4.52, "pt_x4": 4.36, "pt_x5": 3.47, "pt_x6": 5.33, "rv_chime": 0.73, "rv_drop": 0.63, "rv_pop": 0.63, "rv_swish": 0.63, "skip": 1.52, "soft": 0.52, "steps_fast": 1.65, "steps_slow": 2.04, "thud": 0.52, "thunk": 0.52, "tick": 3.03, "tiptoe": 4.05, "trombone": 2.51, "tx_e0": 2.77, "tx_n0": 1.23, "tx_n1": 1.57, "tx_n2": 1.96, "tx_n3": 1.88, "tx_n4": 1.65, "tx_n5": 1.8, "tx_n6": 1.49, "tx_r": 1.88, "tx_t1": 2.69, "tx_t2": 1.49, "tx_t3": 2.04, "violin": 5.04, "whistle": 2.51, "whoosh": 0.63, "win": 1.04};
 var CANCEL={cancel:true};
 function noop(){}
 
@@ -689,6 +690,9 @@ function playSound(id,o,onend){
   return h;
 }
 function playFx(id,rate,vol){if(MUTED)return;playSound(id,{rate:rate,vol:vol,pitch:1});}
+/* the reveal sound can be switched from the controls */
+var RVS=[['rv_pop','Pop'],['rv_chime','Chime'],['rv_swish','Swish'],['rv_drop','Drop'],['pluck','Marimba']],RV={i:0,id:'rv_pop'};
+try{var sv=+localStorage.getItem('hpry-reveal');if(sv>=0&&sv<RVS.length){RV.i=sv;RV.id=RVS[sv][0];}}catch(e){}
 /* background music: one looping track at a time, cross-faded */
 var MUS={id:null,h:null,old:null,iv:0};
 var MVOL={m_title:.45,m_outro:.28};
@@ -1519,7 +1523,7 @@ S.fake=async function(p,play,units){
   }
   var day=p.tile('Day 90','paper',{x:0,y:26});day.x=(p.W-day.w)/2;
   var dayT=day.g.querySelector('text');dayT.textContent='Day 1';
-  function show(k){if(units&&units[k]){setU(units[k],true);if(!p.instant)playFx('pluck',1,.7);}}
+  function show(k){if(units&&units[k]){setU(units[k],true);if(!p.instant)playFx(RV.id,1,.7);}}
   function clearLines(){return Promise.all(p.sprites.filter(function(q){return q.w&&q!==day&&q.o>0;}).map(function(q){return p.to(q,'o',0,300);}));}
   c.dx=0;c.k=.6;c.expr='happy';
   n.o=0;n.k=.6;n.dx=160;n.dir=-1;
@@ -1682,10 +1686,10 @@ function showStage(sl,si,fresh){
     if(k!==si&&st.comp)st.comp.stop();
   });
   var st=sl._stages[si];
-  if(fresh){st.units.forEach(function(u){setU(u,false);});if(st.comp)st.comp.prep();void st.el.offsetWidth;st.el.classList.add('live');countUp(st.el);if(st.el.hasAttribute('data-sting')&&start.hidden)playFx('m_sting',+st.el.getAttribute('data-sting')||1,.5);}
+  if(fresh){st.units.forEach(function(u){setU(u,false);});if(st.comp)st.comp.prep();void st.el.offsetWidth;st.el.classList.add('live');countUp(st.el);if(st.el.hasAttribute('data-sting')&&start.hidden)playFx(st.el.getAttribute('data-sting')||'m_sting',1,.5);}
   else{st.units.forEach(function(u){setU(u,true);});if(st.comp)st.comp.rest();}
 }
-function doStep(sl,k){var s=sl._steps[k];if(s.t==='stage')showStage(sl,s.si,true);else if(s.t==='comp')sl._stages[s.si].comp.do(s.k);else{setU(s.u,true);var st=sl._stages[s.si];if(st.comp&&st.comp.unit)st.comp.unit(st.units.indexOf(s.u)+2);{var te=s.u.els[0];if(s.u.snd)playFx(s.u.snd,1,.8);else if(te&&te.matches('.ring .tile')){var rn=[].indexOf.call(te.parentNode.querySelectorAll('.tile'),te);playFx('pluck',Math.pow(2,[0,2,4,7,9][rn%5]/12),.7);}else playFx('pluck',1,.7);}}}
+function doStep(sl,k){var s=sl._steps[k];if(s.t==='stage')showStage(sl,s.si,true);else if(s.t==='comp')sl._stages[s.si].comp.do(s.k);else{setU(s.u,true);var st=sl._stages[s.si];if(st.comp&&st.comp.unit)st.comp.unit(st.units.indexOf(s.u)+2);{var te=s.u.els[0];if(s.u.snd)playFx(s.u.snd,1,.8);else if(te&&te.matches('.ring .tile')){var rn=[].indexOf.call(te.parentNode.querySelectorAll('.tile'),te);playFx(RV.id,Math.pow(2,[0,2,4,7,9][rn%5]/12),.7);}else playFx(RV.id,1,.7);}}}
 function undoStep(sl,k){var s=sl._steps[k];if(s.t==='stage')showStage(sl,s.si-1,false);else if(s.t==='comp')sl._stages[s.si].comp.undo(s.k);else{setU(s.u,false);var st2=sl._stages[s.si];if(st2.comp&&st2.comp.unit)st2.comp.unit(st2.units.indexOf(s.u)+1);}}
 function pipsUpdate(){
   var sl=slides[cur];pips.textContent='';
@@ -1717,6 +1721,10 @@ document.getElementById('next').addEventListener('click',fwd);
 document.getElementById('full').addEventListener('click',function(){
   try{if(document.fullscreenElement){document.exitFullscreen();}else{var p=document.documentElement.requestFullscreen();if(p&&p.catch)p.catch(noop);}}catch(e){}
 });
+var rvBtn=document.getElementById('rvb');
+function rvLabel(){rvBtn.textContent='Reveal sound: '+RVS[RV.i][1];}
+rvLabel();
+rvBtn.addEventListener('click',function(){RV.i=(RV.i+1)%RVS.length;RV.id=RVS[RV.i][0];rvLabel();try{localStorage.setItem('hpry-reveal',RV.i);}catch(e){}playFx(RV.id,1,.7);});
 var sndBtn=document.getElementById('snd');
 function setMute(m){
   MUTED=m;sndBtn.textContent=m?'Sound off':'Sound on';if(m)musicTo(null,0);else if(start.hidden)musicTo(slides[cur].getAttribute('data-music'),.3);sndBtn.classList.toggle('off',m);sndBtn.setAttribute('aria-pressed',String(!m));
@@ -1732,7 +1740,7 @@ function begin(){
   var c=ac();if(c&&c.resume){try{c.resume();}catch(e){}}
   if(c){try{var b=c.createBuffer(1,1,22050),sr=c.createBufferSource();sr.buffer=b;sr.connect(c.destination);sr.start(0);}catch(e){}}
   else{try{var a=new Audio(asrc('click'));a.volume=.01;var p=a.play();if(p&&p.catch)p.catch(noop);}catch(e){}}
-  preload(['pluck','loop','soft']);preloadAll();keepAwake();
+  preload([RV.id,'loop']);preloadAll();keepAwake();
   musicTo(slides[cur].getAttribute('data-music'),.3);
   return true;
 }
