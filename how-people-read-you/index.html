@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="How People Read You">
+<meta name="theme-color" content="#0E1322">
 <title>How People Read You</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -188,6 +193,15 @@ button:focus-visible{outline:3px solid var(--ease);outline-offset:2px}
 .bg.tun{background:var(--panel);overflow:hidden}
 .bg.tun svg{width:100%;height:100%;display:block}
 .beltbox svg{width:100%;height:auto;display:block}
+html,body{touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+#deck{cursor:pointer}
+#more{display:none;position:fixed;right:6px;bottom:4px;z-index:7;width:48px;height:40px;border:0;background:transparent;color:var(--muted);opacity:.35;font-size:16px;letter-spacing:2px}
+body.touch #more{display:block}
+body.touch #nav{display:none;right:10px;bottom:46px}
+body.touch.navon #nav{display:flex}
+body.touch #prog{opacity:.5}
+.slide>.frame{position:absolute;left:50%;top:50%;margin:-360px 0 0 -640px}
+.thumb .win .frame{margin:0}
 </style>
 </head>
 <body>
@@ -610,9 +624,10 @@ button:focus-visible{outline:3px solid var(--ease);outline-offset:2px}
 
 </main>
 
-<div id="start" role="button" tabindex="0" aria-label="Start the presentation with sound"><div><div>Press any key to start</div><p>Sound is on. Space or → plays the next step · R replays a scene · M mutes · G shows all slides</p></div></div>
+<div id="start" role="button" tabindex="0" aria-label="Start the presentation with sound"><div><div class="st1">Press any key to start</div><p>Sound is on. Space or → plays the next step · R replays a scene · M mutes · G shows all slides</p></div></div>
 <div id="grid" hidden role="dialog" aria-label="All slides"><h2>All slides</h2><div id="thumbs"></div></div>
 <div id="prog" aria-hidden="true"></div>
+<button id="more" type="button" aria-label="Show or hide the slide controls">•••</button>
 <nav id="nav" aria-label="Slide controls">
   <button id="prev" type="button" aria-label="Previous step or slide">←</button>
   <span id="count">1 / 21</span>
@@ -644,8 +659,41 @@ function getAudio(id){
   if(!a.paused&&!a.ended){var b=a.cloneNode();return b;}
   return a;
 }
-function playFx(id,rate,vol){if(MUTED)return;try{var a=getAudio(id);a.currentTime=0;a.volume=vol;if('preservesPitch' in a)a.preservesPitch=false;a.playbackRate=rate;var p=a.play();if(p&&p.catch)p.catch(noop);}catch(e){}}
-function preload(ids){ids.forEach(function(id){if(!pool[id]){var a=pool[id]=new Audio(asrc(id));a.preload='auto';try{a.load();}catch(e){}}});}
+var AC=window.AudioContext||window.webkitAudioContext,actx=null,bufs={},loading={},noWA=false;
+function ac(){if(!actx&&AC){try{actx=new AC();}catch(e){}}return actx;}
+function loadBuf(id){
+  var k=id.replace('.','_'),c=ac();
+  if(bufs[k])return Promise.resolve(bufs[k]);
+  if(!c||noWA)return Promise.reject(0);
+  if(loading[k])return loading[k];
+  return loading[k]=fetch(asrc(id)).then(function(r){if(!r.ok)throw 0;return r.arrayBuffer();})
+    .then(function(ab){return new Promise(function(res,rej){c.decodeAudioData(ab,res,rej);});})
+    .then(function(b){bufs[k]=b;return b;})
+    .catch(function(e){delete loading[k];if(location.protocol==='file:')noWA=true;throw e;});
+}
+/* plays through Web Audio (works on phones, volume and looping included); falls back to an audio element */
+function playSound(id,o,onend){
+  o=o||{};var h={stopped:false,src:null,g:null,el:null};
+  h.pause=function(){h.stopped=true;try{if(h.src){h.src.onended=null;h.src.stop();}}catch(e){}try{if(h.el){h.el.onended=null;h.el.pause();}}catch(e){}};
+  h.setVol=function(v){h.v=v;if(h.g)h.g.gain.value=v;else if(h.el)try{h.el.volume=v;}catch(e){}};
+  h.v=o.vol==null?1:o.vol;
+  function html(){
+    if(h.stopped)return;
+    try{var a=getAudio(id);a.currentTime=0;a.volume=h.v;a.playbackRate=o.rate||1;a.loop=!!o.loop;if('preservesPitch' in a)a.preservesPitch=!o.pitch;a.onended=onend||null;var p=a.play();if(p&&p.catch)p.catch(noop);h.el=a;}catch(e){}
+  }
+  var c=ac();
+  if(!c||noWA){html();return h;}
+  loadBuf(id).then(function(b){
+    if(h.stopped)return;
+    var sr=c.createBufferSource();sr.buffer=b;sr.playbackRate.value=o.rate||1;sr.loop=!!o.loop;
+    var g=c.createGain();g.gain.value=h.v;sr.connect(g);g.connect(c.destination);
+    sr.onended=onend||null;sr.start();h.src=sr;h.g=g;
+  },html);
+  return h;
+}
+function playFx(id,rate,vol){if(MUTED)return;playSound(id,{rate:rate,vol:vol,pitch:1});}
+function preload(ids){ids.forEach(function(id){loadBuf(id).catch(function(){if(!pool[id]){var a=pool[id]=new Audio(asrc(id));a.preload='auto';try{a.load();}catch(e){}}});});}
+function preloadAll(){var ids=Object.keys(DUR),n=0;(function next(){if(n>=ids.length)return;var id=ids[n++];loadBuf(id).then(next,next);})();}
 
 /* ---------- svg helpers ---------- */
 function el(tag,attrs,parent){var e=document.createElementNS(NS,tag);for(var k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
@@ -783,7 +831,7 @@ Panel.prototype.snd=function(id,o){
   if(this.instant)return Promise.resolve();
   var rate=o.rate||1,d=(DUR[id.replace('.','_')]||1.2)/rate*1000,done,a=null;
   var pr=new Promise(function(r){done=r;});
-  if(!MUTED){try{a=getAudio(id);a.currentTime=0;a.volume=o.vol==null?1:o.vol;a.playbackRate=rate;if('preservesPitch' in a)a.preservesPitch=!o.pitch;a.onended=done;var p=a.play();if(p&&p.catch)p.catch(noop);self.playing.push(a);}catch(e){}}
+  if(!MUTED){a=playSound(id,o,done);self.playing.push(a);}
   this.timers.push(setTimeout(done,d+(a?400:0)));
   return pr.then(function(){self.chk(g);});
 };
@@ -854,7 +902,7 @@ Panel.prototype.stop=function(){
   this.gen++;
   var old=this.tw;this.tw=[];for(var i=0;i<old.length;i++)old[i].res();
   this.timers.forEach(clearTimeout);this.timers=[];
-  this.playing.forEach(function(a){try{a.onended=null;a.pause();}catch(e){}});this.playing=[];
+  this.playing.forEach(function(a){try{a.pause();}catch(e){}});this.playing=[];
   this.running=false;
 };
 Panel.prototype.reset=function(){
@@ -1389,12 +1437,12 @@ function Tunnel(host){
   this.au={};
 }
 Tunnel.prototype.vol=function(l,fade){
-  var s=this;clearInterval(this.iv);
-  if(MUTED||l<0){['chatter','heartbeat'].forEach(function(k){if(s.au[k])try{s.au[k].pause();}catch(e){}});return;}
-  var tg={chatter:TUN_CH[l],heartbeat:TUN_HB[l]};
-  ['chatter','heartbeat'].forEach(function(k){if(!s.au[k]){var a=s.au[k]=new Audio(asrc(k));a.loop=true;a.volume=0;}var a2=s.au[k];if(a2.paused){var pr=a2.play();if(pr&&pr.catch)pr.catch(noop);}});
-  var n=0,st={chatter:this.au.chatter.volume,heartbeat:this.au.heartbeat.volume},N=fade?24:1;
-  this.iv=setInterval(function(){n++;['chatter','heartbeat'].forEach(function(k){s.au[k].volume=Math.max(0,Math.min(1,st[k]+(tg[k]-st[k])*n/N));});if(n>=N)clearInterval(s.iv);},60);
+  var s=this,ks=['chatter','heartbeat'];clearInterval(this.iv);
+  if(MUTED||l<0){ks.forEach(function(k){if(s.au[k]){s.au[k].pause();s.au[k]=null;}});return;}
+  var tg={chatter:TUN_CH[l],heartbeat:TUN_HB[l]},st={};
+  ks.forEach(function(k){if(!s.au[k])s.au[k]=playSound(k,{vol:0,loop:true});st[k]=s.au[k].v;});
+  var n=0,N=fade?24:1;
+  this.iv=setInterval(function(){n++;ks.forEach(function(k){if(s.au[k])s.au[k].setVol(Math.max(0,Math.min(1,st[k]+(tg[k]-st[k])*n/N)));});if(n>=N)clearInterval(s.iv);},60);
 };
 Tunnel.prototype.go=function(to,delay){var from=this.lv;this.lv=to;this.pan.run(S.tunnel,false,false,from,to,delay);this.vol(to,true);};
 Tunnel.prototype.stop=function(){this.pan.stop();this.vol(-1);};
@@ -1667,7 +1715,26 @@ function setMute(m){
 }
 sndBtn.addEventListener('click',function(){setMute(!MUTED);});
 var start=document.getElementById('start');
-function begin(){if(start.hidden)return false;start.hidden=true;preload(['pluck','loop','soft']);try{var a=new Audio(asrc('click'));a.volume=.01;var p=a.play();if(p&&p.catch)p.catch(noop);}catch(e){}return true;}
+var wake=null;
+function keepAwake(){try{if(navigator.wakeLock&&document.visibilityState==='visible')navigator.wakeLock.request('screen').then(function(w){wake=w;},noop);}catch(e){}}
+document.addEventListener('visibilitychange',function(){if(start.hidden)keepAwake();});
+function begin(){
+  if(start.hidden)return false;start.hidden=true;
+  var c=ac();if(c&&c.resume){try{c.resume();}catch(e){}}
+  if(c){try{var b=c.createBuffer(1,1,22050),sr=c.createBufferSource();sr.buffer=b;sr.connect(c.destination);sr.start(0);}catch(e){}}
+  else{try{var a=new Audio(asrc('click'));a.volume=.01;var p=a.play();if(p&&p.catch)p.catch(noop);}catch(e){}}
+  preload(['pluck','loop','soft']);preloadAll();keepAwake();
+  return true;
+}
+var TOUCH=window.matchMedia&&window.matchMedia('(pointer:coarse)').matches;
+if(TOUCH){document.body.classList.add('touch');start.querySelector('.st1').textContent='Tap to start';start.querySelector('p').textContent='Sound is on. Tap anywhere for the next step · tap the left edge to go back · the dots in the corner show the controls';}
+deck.addEventListener('click',function(e){
+  if(e.target.closest('a,button'))return;
+  var w=deck.clientWidth||1;
+  if(e.clientX<w*0.18)back();else fwd();
+});
+var more=document.getElementById('more');
+more.addEventListener('click',function(){document.body.classList.toggle('navon');});
 start.addEventListener('click',begin);
 var grid=document.getElementById('grid'),thumbs=document.getElementById('thumbs'),allBtn=document.getElementById('all');
 document.addEventListener('keydown',function(e){
