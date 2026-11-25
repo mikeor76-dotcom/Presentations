@@ -1713,7 +1713,17 @@ function showStage(sl,si,fresh){
   if(fresh){st.units.forEach(function(u){setU(u,false);});if(st.comp)st.comp.prep();void st.el.offsetWidth;st.el.classList.add('live');countUp(st.el);if(st.el.hasAttribute('data-sting')&&start.hidden)playFx(st.el.getAttribute('data-sting')||'m_sting',1,.5);}
   else{st.units.forEach(function(u){setU(u,true);});if(st.comp)st.comp.rest();}
 }
-function doStep(sl,k){var s=sl._steps[k];if(s.t==='stage')showStage(sl,s.si,true);else if(s.t==='comp')sl._stages[s.si].comp.do(s.k);else{setU(s.u,true);var st=sl._stages[s.si];if(st.comp&&st.comp.unit)st.comp.unit(st.units.indexOf(s.u)+2);{var te=s.u.els[0];if(s.u.snd)playFx(s.u.snd,1,.8);else if(te&&te.matches('.ring .tile')){var rn=[].indexOf.call(te.parentNode.querySelectorAll('.tile'),te);playFx(RV.id,Math.pow(2,[0,2,4,7,9][rn%5]/12),.7);}else playFx(RV.id,1,.7);}}}
+/* one family of reveal sounds: the same sound, pitched a little differently for each kind of reveal */
+var RKIND={text:[0,.55],big:[-2,.7],item:[2,.65],card:[-3,.7],image:[-5,.7],flow:[4,.65],strike:[-7,.6]};
+function revealFx(u){
+  var te=u.els[0],k;
+  if(u.snd){playFx(u.snd,1,.8);return;}
+  if(te&&te.matches('.ring .tile')){var rn=[].indexOf.call(te.parentNode.querySelectorAll('.tile'),te);playFx(RV.id,Math.pow(2,[0,2,4,7,9][rn%5]/12),.7);return;}
+  if(!te)k='strike';else if(te.matches('.pic'))k='image';else if(te.matches('.col'))k='card';else if(te.matches('.flow'))k='flow';
+  else if(te.matches('.big'))k='big';else if(te.matches('.lead,.body'))k='text';else k='item';
+  playFx(RV.id,Math.pow(2,RKIND[k][0]/12),RKIND[k][1]);
+}
+function doStep(sl,k){var s=sl._steps[k];if(s.t==='stage')showStage(sl,s.si,true);else if(s.t==='comp')sl._stages[s.si].comp.do(s.k);else{setU(s.u,true);var st=sl._stages[s.si];if(st.comp&&st.comp.unit)st.comp.unit(st.units.indexOf(s.u)+2);{revealFx(s.u);}}}
 function undoStep(sl,k){var s=sl._steps[k];if(s.t==='stage')showStage(sl,s.si-1,false);else if(s.t==='comp')sl._stages[s.si].comp.undo(s.k);else{setU(s.u,false);var st2=sl._stages[s.si];if(st2.comp&&st2.comp.unit)st2.comp.unit(st2.units.indexOf(s.u)+1);}}
 function pipsUpdate(){
   var sl=slides[cur];pips.textContent='';
