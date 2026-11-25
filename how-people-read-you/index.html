@@ -1465,7 +1465,7 @@ S.tunnel=async function(p,from,to,delay){
 };
 S.tunnel.n=0;
 function Tunnel(host){
-  this.n=0;this.lv=0;
+  this.n=1;this.lv=0;this.units=[];this.tm=[];
   this.pan=new Panel(host,{w:500,h:580,floor:520,cand:{x:250,c:NEED},others:[60,128,396,452],label:'A figure stands among laughing friends who ask what he thinks. His own worried thoughts appear above his head, and darkness closes in until only he and those thoughts are visible.'});
   this.au={};
 }
@@ -1478,11 +1478,23 @@ Tunnel.prototype.vol=function(l,fade){
   this.iv=setInterval(function(){n++;ks.forEach(function(k){if(s.au[k])s.au[k].setVol(Math.max(0,Math.min(1,st[k]+(tg[k]-st[k])*n/N)));});if(n>=N)clearInterval(s.iv);},60);
 };
 Tunnel.prototype.go=function(to,delay){var from=this.lv;this.lv=to;this.pan.run(S.tunnel,false,false,from,to,delay);this.vol(to,true);};
-Tunnel.prototype.stop=function(){this.pan.stop();this.vol(-1);};
+Tunnel.prototype.clear=function(){this.seq=(this.seq||0)+1;(this.tm||[]).forEach(clearTimeout);this.tm=[];this.busy=false;};
+Tunnel.prototype.stop=function(){this.clear();this.pan.stop();this.vol(-1);};
 Tunnel.prototype.quiet=function(){this.vol(-1);};
-Tunnel.prototype.prep=function(){this.lv=0;this.go(1,1100);};
-Tunnel.prototype.rest=function(){this.lv=3;this.pan.run(S.tunnel,true,false,3,3);};
-Tunnel.prototype.unit=function(l){this.go(l);};
+Tunnel.prototype.prep=function(){this.clear();this.lv=0;this.pan.run(S.tunnel,false,false,0,0);this.vol(0,true);};
+Tunnel.prototype.rest=function(){this.clear();this.lv=3;this.pan.run(S.tunnel,true,false,3,3);};
+Tunnel.prototype.locked=function(){return !!this.busy;};
+Tunnel.prototype.finish=function(){this.units.forEach(function(u){setU(u,true);});this.clear();this.lv=3;this.pan.run(S.tunnel,false,false,3,3);this.vol(3,true);};
+/* one press plays the whole thing: the tunnel closes in three stages and the two lines appear with it */
+Tunnel.prototype.do=function(){
+  var s=this,q;this.clear();q=this.seq;this.busy=true;
+  function show(k){if(s.units[k]){setU(s.units[k],true);revealFx(s.units[k]);}}
+  this.go(1);
+  this.tm=[setTimeout(function(){if(q!==s.seq)return;show(0);s.go(2);},3800),
+           setTimeout(function(){if(q!==s.seq)return;show(1);s.go(3);},9800),
+           setTimeout(function(){if(q!==s.seq)return;s.busy=false;},12400)];
+};
+Tunnel.prototype.undo=function(){this.units.forEach(function(u){setU(u,false);});this.prep();};
 
 /* ---------- toolbelt ---------- */
 var TOOLS=[
@@ -1598,11 +1610,13 @@ S.fake=async function(p,play,units){
 };
 S.fake.n=0;
 function Fake(host){this.n=1;this.units=[];this.pan=new Panel(host,{w:500,h:420,floor:372,cand:{x:190,c:EASE},others:[390],label:'A small figure is dropped into a suit jacket and hat that are far too big, and laughs it off. Over ninety days the figure grows until the suit fits, at ease the whole way. A newcomer arrives drowning in a suit and is told: it is not fake, it is new.'});}
-Fake.prototype.stop=function(){this.pan.stop();};
+Fake.prototype.stop=function(){this.busy=false;this.pan.stop();};
 Fake.prototype.prep=function(){this.pan.run(S.fake,true,false,false);};
 Fake.prototype.rest=function(){this.pan.run(S.fake,true,false,true,this.units);};
-Fake.prototype.do=function(){preload(['fk.1','fk.2','fk.3','fk.4','fk.5','tick','boing','thud','win','steps_fast']);this.pan.run(S.fake,false,false,true,this.units);};
-Fake.prototype.undo=function(){this.units.forEach(function(u){setU(u,false);});this.prep();};
+Fake.prototype.do=function(){var s=this;preload(['fk.1','fk.2','fk.3','fk.4','fk.5','tick','boing','thud','win','steps_fast']);this.busy=true;this.pan.run(S.fake,false,false,true,this.units).then(function(ok){if(ok)s.busy=false;});};
+Fake.prototype.locked=function(){return !!this.busy;};
+Fake.prototype.finish=function(){this.busy=false;this.rest();};
+Fake.prototype.undo=function(){this.busy=false;this.units.forEach(function(u){setU(u,false);});this.prep();};
 
 /* ---------- static vignettes ---------- */
 var VIGS={
@@ -1741,7 +1755,12 @@ function go(i,dir){
   var nx=slides[i+1];
   [sl,nx].forEach(function(s){if(s)s._stages.forEach(function(st){if(st.comp&&st.comp.name)preload(sceneIds(st.comp.name));});});
 }
-function fwd(){var sl=slides[cur];if(sl._pos<sl._steps.length){doStep(sl,sl._pos);sl._pos++;pipsUpdate();}else go(cur+1);}
+var lastFwd=0;
+function fwd(){var sl=slides[cur];
+  /* while a one-press sequence is playing, a stray press does nothing; a quick double press skips to its end */
+  var on=sl._stages.filter(function(st){return st.el.classList.contains('on');})[0];
+  if(on&&on.comp&&on.comp.locked&&on.comp.locked()){var t=Date.now();if(t-lastFwd<600){lastFwd=0;on.comp.finish();}else lastFwd=t;return;}
+  lastFwd=0;if(sl._pos<sl._steps.length){doStep(sl,sl._pos);sl._pos++;pipsUpdate();}else go(cur+1);}
 function back(){var sl=slides[cur];if(sl._pos>0){sl._pos--;undoStep(sl,sl._pos);pipsUpdate();}else go(cur-1,'back');}
 function replay(){
   var sl=slides[cur];
